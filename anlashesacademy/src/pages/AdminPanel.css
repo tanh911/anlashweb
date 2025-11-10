@@ -1,0 +1,586 @@
+/* ========== Tổng thể ========== */
+.admin-container {
+  max-width: 1200px;
+  margin: 40px auto;
+  padding: 20px;
+  font-family: "Inter", sans-serif;
+  color: #333;
+}
+
+.admin-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.admin-header h1 {
+  font-size: 28px;
+  color: #222;
+  margin-bottom: 8px;
+}
+
+.admin-header p {
+  color: #666;
+  font-size: 15px;
+}
+
+/* ========== Bố cục chính ========== */
+.admin-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .admin-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========== Calendar Section ========== */
+.calendar-section {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.nav-btn {
+  background: #007bff;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover {
+  background: #0056b3;
+}
+
+.nav-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.current-month {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+/* Lưới ngày */
+.calendar {
+  margin-top: 10px;
+}
+
+.calendar-weekdays,
+.calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  gap: 4px;
+}
+
+.weekday {
+  font-weight: 600;
+  color: #777;
+  padding: 6px 0;
+}
+
+.calendar-day {
+  border-radius: 10px;
+  padding: 8px 0;
+  cursor: pointer;
+  min-height: 60px;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.calendar-day.empty {
+  background: transparent;
+  cursor: default;
+}
+
+.calendar-day.today {
+  border: 2px solid #007bff;
+}
+
+.calendar-day.selected {
+  background: #007bff;
+  color: white;
+}
+
+.calendar-day.has-schedule {
+  background: #e8f5e9;
+}
+
+.calendar-day.no-schedule {
+  background: #f8f9fa;
+}
+
+.calendar-day:hover {
+  transform: scale(1.05);
+}
+
+.day-number {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.slot-count {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #007bff;
+}
+
+/* ========== Form chỉnh sửa lịch ========== */
+.schedule-form {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+}
+
+.schedule-form h3 {
+  font-size: 18px;
+  margin-bottom: 16px;
+  color: #222;
+}
+
+.form-group {
+  margin-bottom: 18px;
+}
+
+.toggle-group {
+  display: flex;
+  gap: 10px;
+}
+
+.toggle-btn {
+  flex: 1;
+  border: 1px solid #ccc;
+  background: #f9f9f9;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.toggle-btn.active {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.time-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 10px;
+}
+
+.time-slot {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background: #f9f9f9;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.time-slot.selected {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.time-slot:hover {
+  background: #e0e0e0;
+}
+
+.save-btn {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  background: #28a745;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.save-btn:hover {
+  background: #218838;
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ========== Danh sách lịch hẹn ========== */
+.appointments-section {
+  grid-column: span 2;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+}
+
+@media (max-width: 900px) {
+  .appointments-section {
+    grid-column: 1;
+  }
+}
+
+.appointment-card {
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.appointment-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.appointment-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.appointment-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.confirm-btn,
+.cancel-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  color: white;
+  transition: all 0.2s;
+}
+
+.confirm-btn {
+  background: #007bff;
+}
+
+.confirm-btn:hover {
+  background: #0069d9;
+}
+
+.cancel-btn {
+  background: #dc3545;
+}
+
+.cancel-btn:hover {
+  background: #c82333;
+}
+
+.no-appointments {
+  text-align: center;
+  color: #777;
+  font-style: italic;
+  margin-top: 12px;
+}
+/* ========== Appointments Section ========== */
+.appointments-section {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 30px;
+  margin-top: 30px;
+}
+
+.appointments-section h3 {
+  font-size: 24px;
+  color: #1a1a1a;
+  margin-bottom: 25px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.appointments-section h3::before {
+  content: "📅";
+  font-size: 20px;
+}
+
+/* Appointment Card */
+.appointment-card {
+  background: #fafbfc;
+  border: 1px solid #e1e5e9;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+  display: flex;
+  justify-content: between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.appointment-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  border-color: #007bff;
+}
+
+/* Status variants */
+.appointment-card.confirmed {
+  border-left: 4px solid #28a745;
+  background: linear-gradient(135deg, #f8fff9 0%, #f0f9f0 100%);
+}
+
+.appointment-card.pending {
+  border-left: 4px solid #ffc107;
+  background: linear-gradient(135deg, #fffbf0 0%, #fef9e7 100%);
+}
+
+.appointment-card.cancelled {
+  border-left: 4px solid #dc3545;
+  background: linear-gradient(135deg, #fff5f5 0%, #fef0f0 100%);
+}
+
+.appointment-card.completed {
+  border-left: 4px solid #6c757d;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+/* Appointment Info */
+.appointment-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.appointment-info strong {
+  font-size: 18px;
+  color: #1a1a1a;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.appointment-info span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #555;
+  line-height: 1.4;
+}
+
+.appointment-info .status {
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  align-self: flex-start;
+  margin-top: 8px;
+}
+
+.appointment-card.confirmed .status {
+  background: #d4edda;
+  color: #155724;
+}
+
+.appointment-card.pending .status {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.appointment-card.cancelled .status {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.appointment-card.completed .status {
+  background: #e2e3e5;
+  color: #383d41;
+}
+
+/* Appointment Actions */
+.appointment-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.confirm-btn,
+.cancel-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.confirm-btn {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.confirm-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+  background: linear-gradient(135deg, #218838, #1e9e8a);
+}
+
+.confirm-btn::before {
+  content: "✓";
+  font-weight: bold;
+}
+
+.cancel-btn {
+  background: linear-gradient(135deg, #dc3545, #e83e8c);
+  color: white;
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+.cancel-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+  background: linear-gradient(135deg, #c82333, #d91a7a);
+}
+
+.cancel-btn::before {
+  content: "✕";
+  font-weight: bold;
+}
+
+/* No Appointments */
+.no-appointments {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6c757d;
+  font-size: 16px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 2px dashed #dee2e6;
+}
+
+.no-appointments::before {
+  content: "📝";
+  font-size: 24px;
+  display: block;
+  margin-bottom: 10px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .appointments-section {
+    padding: 20px;
+    margin-top: 20px;
+  }
+
+  .appointment-card {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .appointment-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .confirm-btn,
+  .cancel-btn {
+    flex: 1;
+    min-width: auto;
+  }
+
+  .appointment-info strong {
+    font-size: 16px;
+  }
+
+  .appointment-info span {
+    font-size: 13px;
+  }
+}
+
+/* Animation for new appointments */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.appointment-card {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Loading state */
+.appointment-card.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.appointment-card.loading .confirm-btn,
+.appointment-card.loading .cancel-btn {
+  position: relative;
+  color: transparent;
+}
+
+.appointment-card.loading .confirm-btn::after,
+.appointment-card.loading .cancel-btn::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
