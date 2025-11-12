@@ -1,0 +1,19 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.first-container {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  background-color: pink;
+}
+.second-container {
+  width: 100%;
+  height: 2rem;
+  background-color: red;
+  height: 100px;
+}
