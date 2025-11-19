@@ -1,93 +1,138 @@
-import { useState, useRef } from "react";
-import { uploadToCloudinary } from "../utils/cloudinaryUpload"; // ⬅️ dùng Cloudinary
-import { saveSliderImages } from "../firebase/firestore";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase/config";
+import React, { useState } from "react";
+import { saveSliderImages, saveAds } from "../firebase/firestore";
+import { uploadToCloudinary } from "../utils/cloudinaryUpload"; // Import Cloudinary
 import "./ImageUploader.css";
 
-export default function ImageUploader({ loggedIn }) {
-  const [files, setFiles] = useState([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const inputRef = useRef(null);
+const ImageUploader = ({
+  loggedIn,
+  onUploadSuccess,
+  existingImages = [],
+  buttonText = "Upload Image",
+  uploadType = "slider",
+  adIndex = 0,
+  existingAds = [],
+}) => {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const [dragOver, setDragOver] = useState(false);
 
-  if (!loggedIn) return null;
+  if (!loggedIn) {
+    return null;
+  }
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const dropped = Array.from(e.dataTransfer.files).filter((f) =>
-      f.type.startsWith("image/")
-    );
-    setFiles((prev) => [...prev, ...dropped]);
-  };
+  const handleFileUpload = async (file) => {
+    if (!file) return;
 
-  const handleUpload = async () => {
-    if (files.length === 0) return;
-    setIsUploading(true);
+    if (!file.type.startsWith("image/")) {
+      setError("Vui lòng chọn file ảnh (JPEG, PNG, GIF)");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Kích thước ảnh không được vượt quá 5MB");
+      return;
+    }
+
+    setUploading(true);
+    setError("");
 
     try {
-      const urls = [];
+      console.log("Bắt đầu upload file:", file.name);
 
-      for (const file of files) {
-        const url = await uploadToCloudinary(file);
-        urls.push(url);
+      // DÙNG CLOUDINARY THAY VÌ FIREBASE STORAGE
+      const downloadURL = await uploadToCloudinary(file);
+      console.log("Upload thành công:", downloadURL);
+
+      // Xử lý khác nhau cho slider và ad
+      if (uploadType === "slider") {
+        const updatedImages = [...existingImages, downloadURL];
+        await saveSliderImages(updatedImages);
+        console.log("Đã lưu slider images");
+      } else if (uploadType === "ad") {
+        const updatedAds = [...existingAds];
+        updatedAds[adIndex] = downloadURL;
+        await saveAds(updatedAds);
+        console.log("Đã lưu ads");
       }
 
-      const snap = await getDoc(doc(db, "settings/slider"));
-      const old = snap.exists() ? snap.data().images || [] : [];
-      await saveSliderImages([...old, ...urls]);
+      if (onUploadSuccess) {
+        onUploadSuccess(downloadURL);
+      }
 
-      setFiles([]);
-      alert("✅ Ảnh đã được upload lên Cloudinary và lưu vào Firestore!");
-    } catch (err) {
-      console.error("❌ Lỗi upload:", err);
-      alert("Lỗi khi upload ảnh!");
+      alert("Upload ảnh thành công!");
+    } catch (error) {
+      console.error("Lỗi khi upload ảnh:", error);
+      setError("Lỗi khi upload ảnh. Vui lòng thử lại.");
     } finally {
-      setIsUploading(false);
+      setUploading(false);
     }
   };
 
-  const handleRemoveFile = (index) => {
-    setFiles((prev) => prev.filter((_, i) => i !== index));
+  const handleFileInputChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFileUpload(files[0]);
+    }
   };
 
   return (
     <div className="image-uploader">
       <div
-        className="upload-dropzone"
+        className={`upload-area ${dragOver ? "drag-over" : ""} ${
+          uploading ? "uploading" : ""
+        }`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onDragOver={(e) => e.preventDefault()}
-        onClick={() => inputRef.current.click()}
       >
-        <p>Kéo thả ảnh vào đây hoặc nhấn để chọn nhiều ảnh</p>
-        <input
-          ref={inputRef}
-          type="file"
-          multiple
-          accept="image/*"
-          style={{ display: "none" }}
-          onChange={(e) =>
-            setFiles((prev) => [...prev, ...Array.from(e.target.files)])
-          }
-        />
-      </div>
-
-      <button
-        onClick={handleUpload}
-        disabled={isUploading || files.length === 0}
-      >
-        {isUploading ? "Đang upload..." : "Upload ảnh Slider"}
-      </button>
-
-      <div className="preview">
-        {files.map((f, i) => (
-          <div key={i} className="preview-wrapper">
-            <img src={URL.createObjectURL(f)} alt="preview" />
-            <button className="btn-remove" onClick={() => handleRemoveFile(i)}>
-              ✕
-            </button>
+        {uploading ? (
+          <div className="upload-status">
+            <div className="spinner"></div>
+            <p>Đang upload ảnh...</p>
           </div>
-        ))}
+        ) : (
+          <>
+            <p className="upload-text">{buttonText}</p>
+            <p className="upload-requirements">JPEG, PNG, GIF - Tối đa 5MB</p>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileInputChange}
+              disabled={uploading}
+              className="file-input"
+            />
+          </>
+        )}
       </div>
+
+      {error && (
+        <div className="upload-error">
+          <span className="error-icon">⚠️</span>
+          {error}
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default ImageUploader;

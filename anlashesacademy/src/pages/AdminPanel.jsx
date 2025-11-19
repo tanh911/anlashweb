@@ -1,18 +1,20 @@
+// AdminPanel.jsx (thay file cũ)
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./AdminPanel.css";
 
 const API_BASE = "http://localhost:5000/api";
+const AUTH_HEADER = { Authorization: "Bearer admin-secret-token" }; // đổi token nếu cần
 
 const AdminPanel = () => {
+  // ... giữ lại states cũ ...
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState("");
   const [schedules, setSchedules] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Thêm state cho quản lý dịch vụ
-  const [activeTab, setActiveTab] = useState("schedule"); // 'schedule', 'services', 'appointments'
+  const [activeTab, setActiveTab] = useState("schedule");
   const [services, setServices] = useState([]);
   const [serviceForm, setServiceForm] = useState({
     name: "",
@@ -23,7 +25,6 @@ const AdminPanel = () => {
   });
   const [editingService, setEditingService] = useState(null);
 
-  // Form data for schedule
   const [scheduleForm, setScheduleForm] = useState({
     date: "",
     available_slots: [],
@@ -42,108 +43,89 @@ const AdminPanel = () => {
     "17:00",
   ];
 
-  // Load data khi component mount
+  // Content states
+  const [content, setContent] = useState({
+    title: "",
+    subtitle: "",
+    banner: "",
+    gallery: [],
+    about: "",
+  });
+  const [uploading, setUploading] = useState(false);
+
   useEffect(() => {
     fetchSchedules();
     fetchAppointments();
     fetchServices();
+    //fetchContent();
   }, [currentDate]);
 
-  // Lấy danh sách lịch làm việc
+  // ---- Fetching ----
   const fetchSchedules = async () => {
     try {
       const year = currentDate.getFullYear();
       const month = String(currentDate.getMonth() + 1).padStart(2, "0");
       const startDate = `${year}-${month}-01`;
       const endDate = `${year}-${month}-31`;
-
       const response = await axios.get(
         `${API_BASE}/schedule?startDate=${startDate}&endDate=${endDate}`
       );
-
-      if (response.data.success) {
-        setSchedules(response.data.data);
-      }
-    } catch (error) {
-      console.error("Lỗi khi lấy lịch làm việc:", error);
+      if (response.data.success) setSchedules(response.data.data);
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  // Lấy danh sách lịch hẹn
   const fetchAppointments = async () => {
     try {
       const response = await axios.get(`${API_BASE}/appointments`);
-      if (response.data.success) {
-        setAppointments(response.data.data);
-      }
-    } catch (error) {
-      console.error("Lỗi khi lấy lịch hẹn:", error);
+      if (response.data.success) setAppointments(response.data.data);
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  // Lấy danh sách dịch vụ
   const fetchServices = async () => {
     try {
       const response = await axios.get(`${API_BASE}/services`);
-      if (response.data.success) {
-        setServices(response.data.data);
-      }
-    } catch (error) {
-      console.error("Lỗi khi lấy danh sách dịch vụ:", error);
-      // Fallback services nếu API lỗi
-      setServices([
-        {
-          _id: "1",
-          name: "Haircut",
-          description: "Cắt tóc",
-          duration: 60,
-          price: 100000,
-          isActive: true,
-        },
-        {
-          _id: "2",
-          name: "Hair Color",
-          description: "Nhuộm tóc",
-          duration: 120,
-          price: 300000,
-          isActive: true,
-        },
-        {
-          _id: "3",
-          name: "Hair Treatment",
-          description: "Ủ tóc",
-          duration: 90,
-          price: 200000,
-          isActive: true,
-        },
-      ]);
+      if (response.data.success) setServices(response.data.data);
+    } catch (err) {
+      console.error("Lỗi khi lấy danh sách dịch vụ:", err);
+      setServices([]);
     }
   };
 
-  // Thêm dịch vụ mới
+  // const fetchContent = async () => {
+  //   try {
+  //     const response = await axios.get(`${API_BASE}/content`);
+  //     if (response.data.success) setContent(response.data.data);
+  //   } catch (err) {
+  //     console.error("Lỗi khi lấy content:", err);
+  //   }
+  // };
+
+  // ---- Services handlers ----
   const handleAddService = async (e) => {
     e.preventDefault();
-
     if (!serviceForm.name.trim()) {
       alert("Vui lòng nhập tên dịch vụ");
       return;
     }
-
     setLoading(true);
     try {
       if (editingService) {
-        // Cập nhật dịch vụ
         await axios.put(
           `${API_BASE}/services/${editingService._id}`,
-          serviceForm
+          serviceForm,
+          { headers: AUTH_HEADER }
         );
         alert("Cập nhật dịch vụ thành công!");
       } else {
-        // Thêm dịch vụ mới
-        await axios.post(`${API_BASE}/services`, serviceForm);
+        await axios.post(`${API_BASE}/services`, serviceForm, {
+          headers: AUTH_HEADER,
+        });
         alert("Thêm dịch vụ thành công!");
       }
-
       fetchServices();
       resetServiceForm();
     } catch (error) {
@@ -153,12 +135,12 @@ const AdminPanel = () => {
     }
   };
 
-  // Xóa dịch vụ
   const handleDeleteService = async (serviceId) => {
     if (!window.confirm("Bạn có chắc muốn xóa dịch vụ này?")) return;
-
     try {
-      await axios.delete(`${API_BASE}/services/${serviceId}`);
+      await axios.delete(`${API_BASE}/services/${serviceId}`, {
+        headers: AUTH_HEADER,
+      });
       alert("Xóa dịch vụ thành công!");
       fetchServices();
     } catch (error) {
@@ -166,7 +148,6 @@ const AdminPanel = () => {
     }
   };
 
-  // Chỉnh sửa dịch vụ
   const handleEditService = (service) => {
     setEditingService(service);
     setServiceForm({
@@ -178,7 +159,6 @@ const AdminPanel = () => {
     });
   };
 
-  // Reset form dịch vụ
   const resetServiceForm = () => {
     setEditingService(null);
     setServiceForm({
@@ -190,13 +170,10 @@ const AdminPanel = () => {
     });
   };
 
-  // Xử lý chọn ngày để chỉnh sửa
+  // ---- Schedule handlers ----
   const handleDateSelect = (dateString) => {
     setSelectedDate(dateString);
-
-    // Tìm schedule hiện tại của ngày này
     const existingSchedule = schedules.find((s) => s.date === dateString);
-
     if (existingSchedule) {
       setScheduleForm({
         date: existingSchedule.date,
@@ -212,28 +189,25 @@ const AdminPanel = () => {
     }
   };
 
-  // Xử lý chọn/bỏ chọn khung giờ
   const handleTimeSlotToggle = (time) => {
     setScheduleForm((prev) => {
       const newSlots = prev.available_slots.includes(time)
         ? prev.available_slots.filter((t) => t !== time)
         : [...prev.available_slots, time].sort();
-
       return { ...prev, available_slots: newSlots };
     });
   };
 
-  // Lưu lịch làm việc
   const handleSaveSchedule = async () => {
     if (!scheduleForm.date) {
       alert("Vui lòng chọn ngày!");
       return;
     }
-
     setLoading(true);
     try {
-      const response = await axios.post(`${API_BASE}/schedule`, scheduleForm);
-
+      const response = await axios.post(`${API_BASE}/schedule`, scheduleForm, {
+        headers: AUTH_HEADER,
+      });
       if (response.data.success) {
         alert("Cập nhật lịch thành công!");
         fetchSchedules();
@@ -245,10 +219,14 @@ const AdminPanel = () => {
     }
   };
 
-  // Xác nhận lịch hẹn
+  // ---- Appointments handlers ----
   const handleConfirmAppointment = async (appointmentId) => {
     try {
-      await axios.put(`${API_BASE}/appointments/${appointmentId}/confirm`);
+      await axios.put(
+        `${API_BASE}/appointments/${appointmentId}/confirm`,
+        {},
+        { headers: AUTH_HEADER }
+      );
       alert("Đã xác nhận lịch hẹn!");
       fetchAppointments();
     } catch (error) {
@@ -256,12 +234,14 @@ const AdminPanel = () => {
     }
   };
 
-  // Hủy lịch hẹn
   const handleCancelAppointment = async (appointmentId) => {
     if (!window.confirm("Bạn có chắc muốn hủy lịch hẹn này?")) return;
-
     try {
-      await axios.put(`${API_BASE}/appointments/${appointmentId}/cancel`);
+      await axios.put(
+        `${API_BASE}/appointments/${appointmentId}/cancel`,
+        {},
+        { headers: AUTH_HEADER }
+      );
       alert("Đã hủy lịch hẹn!");
       fetchAppointments();
     } catch (error) {
@@ -269,7 +249,69 @@ const AdminPanel = () => {
     }
   };
 
-  // Tạo danh sách ngày trong tháng
+  // ---- Content handlers ----
+  const handleBannerUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const form = new FormData();
+    form.append("file", file);
+    setUploading(true);
+    try {
+      const res = await axios.post(`${API_BASE}/upload`, form, {
+        headers: { ...AUTH_HEADER, "Content-Type": "multipart/form-data" },
+      });
+      if (res.data.success) {
+        setContent((c) => ({ ...c, banner: res.data.url }));
+        alert("Upload banner thành công!");
+      }
+    } catch (err) {
+      alert("Upload thất bại");
+      console.error(err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleGalleryUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setUploading(true);
+    try {
+      for (const file of files) {
+        const form = new FormData();
+        form.append("file", file);
+        const res = await axios.post(`${API_BASE}/upload`, form, {
+          headers: { ...AUTH_HEADER, "Content-Type": "multipart/form-data" },
+        });
+        if (res.data.success) {
+          setContent((c) => ({
+            ...c,
+            gallery: [...(c.gallery || []), res.data.url],
+          }));
+        }
+      }
+      alert("Upload gallery xong");
+    } catch (err) {
+      console.error(err);
+      alert("Upload gallery lỗi");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const saveContent = async () => {
+    try {
+      await axios.post(`${API_BASE}/content`, content, {
+        headers: AUTH_HEADER,
+      });
+      alert("Lưu nội dung thành công!");
+    } catch (err) {
+      console.error(err);
+      alert("Lưu thất bại");
+    }
+  };
+
+  // ---- Calendar UI helper ----
   const getDaysInMonth = () => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -277,7 +319,6 @@ const AdminPanel = () => {
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
     const startingDay = firstDay.getDay();
-
     const days = [];
     for (let i = 0; i < startingDay; i++) days.push(null);
     for (let i = 1; i <= daysInMonth; i++) {
@@ -306,8 +347,6 @@ const AdminPanel = () => {
   return (
     <div className="admin-container">
       <h2>Trang quản lý Admin</h2>
-
-      {/* Navigation Tabs */}
       <div className="admin-tabs">
         <button
           className={`tab-btn ${activeTab === "schedule" ? "active" : ""}`}
@@ -327,12 +366,19 @@ const AdminPanel = () => {
         >
           📋 Lịch hẹn
         </button>
+        <button
+          className={`tab-btn ${activeTab === "content" ? "active" : ""}`}
+          onClick={() => setActiveTab("content")}
+        >
+          🖼 Quản lý nội dung
+        </button>
       </div>
 
       <div className="admin-content">
-        {/* Tab Quản lý lịch làm việc */}
+        {/* SCHEDULE TAB */}
         {activeTab === "schedule" && (
           <div className="tab-content">
+            {/* calendar and schedule form (same as your original) */}
             <div className="calendar-section">
               <div className="calendar-header">
                 <button
@@ -371,21 +417,18 @@ const AdminPanel = () => {
 
               <div className="calendar">
                 <div className="calendar-weekdays">
-                  {["CN", "T2", "T3", "T4", "T5", "T6", "T7"].map((day) => (
-                    <div key={day} className="weekday">
-                      {day}
+                  {["CN", "T2", "T3", "T4", "T5", "T6", "T7"].map((d) => (
+                    <div key={d} className="weekday">
+                      {d}
                     </div>
                   ))}
                 </div>
-
                 <div className="calendar-days">
                   {days.map((day, index) => {
-                    if (!day) {
+                    if (!day)
                       return (
                         <div key={index} className="calendar-day empty"></div>
                       );
-                    }
-
                     const dateString = day.toISOString().split("T")[0];
                     const schedule = schedules.find(
                       (s) => s.date === dateString
@@ -393,7 +436,6 @@ const AdminPanel = () => {
                     const isSelected = selectedDate === dateString;
                     const isToday =
                       day.toDateString() === new Date().toDateString();
-
                     return (
                       <div
                         key={index}
@@ -420,7 +462,6 @@ const AdminPanel = () => {
             {selectedDate && (
               <div className="schedule-form">
                 <h3>Chỉnh sửa lịch ngày {selectedDate}</h3>
-
                 <div className="form-group">
                   <label>Trạng thái:</label>
                   <div className="toggle-group">
@@ -429,10 +470,7 @@ const AdminPanel = () => {
                         scheduleForm.is_available ? "active" : ""
                       }`}
                       onClick={() =>
-                        setScheduleForm((prev) => ({
-                          ...prev,
-                          is_available: true,
-                        }))
+                        setScheduleForm((p) => ({ ...p, is_available: true }))
                       }
                     >
                       Làm việc
@@ -442,8 +480,8 @@ const AdminPanel = () => {
                         !scheduleForm.is_available ? "active" : ""
                       }`}
                       onClick={() =>
-                        setScheduleForm((prev) => ({
-                          ...prev,
+                        setScheduleForm((p) => ({
+                          ...p,
                           is_available: false,
                           available_slots: [],
                         }))
@@ -487,7 +525,7 @@ const AdminPanel = () => {
           </div>
         )}
 
-        {/* Tab Quản lý dịch vụ */}
+        {/* SERVICES TAB */}
         {activeTab === "services" && (
           <div className="tab-content">
             <div className="services-management">
@@ -495,7 +533,6 @@ const AdminPanel = () => {
                 <h3>
                   {editingService ? "Chỉnh sửa dịch vụ" : "Thêm dịch vụ mới"}
                 </h3>
-
                 <form onSubmit={handleAddService} className="service-form">
                   <div className="form-row">
                     <div className="form-group">
@@ -513,7 +550,6 @@ const AdminPanel = () => {
                         required
                       />
                     </div>
-
                     <div className="form-group">
                       <label>Giá (VNĐ)</label>
                       <input
@@ -545,7 +581,6 @@ const AdminPanel = () => {
                         placeholder="Mô tả dịch vụ"
                       />
                     </div>
-
                     <div className="form-group">
                       <label>Thời gian (phút)</label>
                       <input
@@ -573,7 +608,7 @@ const AdminPanel = () => {
                             isActive: e.target.checked,
                           })
                         }
-                      />
+                      />{" "}
                       Hiển thị dịch vụ
                     </label>
                   </div>
@@ -605,7 +640,6 @@ const AdminPanel = () => {
 
               <div className="services-list">
                 <h3>Danh sách dịch vụ ({services.length})</h3>
-
                 {services.map((service) => (
                   <div key={service._id} className="service-card">
                     <div className="service-info">
@@ -646,7 +680,6 @@ const AdminPanel = () => {
                     </div>
                   </div>
                 ))}
-
                 {services.length === 0 && (
                   <p className="no-data">Chưa có dịch vụ nào</p>
                 )}
@@ -655,46 +688,35 @@ const AdminPanel = () => {
           </div>
         )}
 
-        {/* Tab Lịch hẹn */}
+        {/* APPOINTMENTS TAB */}
         {activeTab === "appointments" && (
           <div className="tab-content">
             <div className="appointments-section">
               <h3>Lịch hẹn ({appointments.length})</h3>
-
-              {appointments.map((appointment) => (
-                <div
-                  key={appointment._id}
-                  className={`appointment-card ${appointment.status}`}
-                >
+              {appointments.map((app) => (
+                <div key={app._id} className={`appointment-card ${app.status}`}>
                   <div className="appointment-info">
-                    <strong>{appointment.customer_name}</strong>
-                    <span>📞 {appointment.customer_phone}</span>
+                    <strong>{app.customer_name}</strong>
+                    <span>📞 {app.customer_phone}</span>
                     <span>
-                      📅 {appointment.date} - {appointment.time}
+                      📅 {app.date} - {app.time}
                     </span>
-                    <span>💇 {appointment.service_type}</span>
-                    {appointment.notes && <span>📝 {appointment.notes}</span>}
-                    <span className="status">
-                      Trạng thái: {appointment.status}
-                    </span>
+                    <span>💇 {app.service_type}</span>
+                    {app.notes && <span>📝 {app.notes}</span>}
+                    <span className="status">Trạng thái: {app.status}</span>
                   </div>
-
                   <div className="appointment-actions">
-                    {appointment.status === "pending" && (
+                    {app.status === "pending" && (
                       <>
                         <button
                           className="confirm-btn"
-                          onClick={() =>
-                            handleConfirmAppointment(appointment._id)
-                          }
+                          onClick={() => handleConfirmAppointment(app._id)}
                         >
                           Xác nhận
                         </button>
                         <button
                           className="cancel-btn"
-                          onClick={() =>
-                            handleCancelAppointment(appointment._id)
-                          }
+                          onClick={() => handleCancelAppointment(app._id)}
                         >
                           Hủy
                         </button>
@@ -703,11 +725,100 @@ const AdminPanel = () => {
                   </div>
                 </div>
               ))}
-
               {appointments.length === 0 && (
                 <p className="no-appointments">Chưa có lịch hẹn nào</p>
               )}
             </div>
+          </div>
+        )}
+
+        {/* CONTENT TAB */}
+        {activeTab === "content" && (
+          <div className="tab-content">
+            <h3>Quản lý nội dung trang web</h3>
+
+            <div className="form-group">
+              <label>Tiêu đề (Hero title)</label>
+              <input
+                type="text"
+                value={content.title || ""}
+                onChange={(e) =>
+                  setContent({ ...content, title: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Mô tả ngắn</label>
+              <textarea
+                value={content.subtitle || ""}
+                onChange={(e) =>
+                  setContent({ ...content, subtitle: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="form-group">
+              <label>About (giới thiệu)</label>
+              <textarea
+                value={content.about || ""}
+                onChange={(e) =>
+                  setContent({ ...content, about: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Banner (ảnh)</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleBannerUpload}
+              />
+              {uploading && <div>Uploading...</div>}
+              {content.banner && (
+                <div>
+                  <img
+                    src={`http://localhost:5000${content.banner}`}
+                    alt="banner"
+                    style={{ maxWidth: "320px", marginTop: "8px" }}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label>Gallery (upload nhiều ảnh)</label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleGalleryUpload}
+              />
+              {content.gallery && content.gallery.length > 0 && (
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    marginTop: 8,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {content.gallery.map((g, i) => (
+                    <img
+                      key={i}
+                      src={`http://localhost:5000${g}`}
+                      alt={`g${i}`}
+                      style={{ width: 100, height: 80, objectFit: "cover" }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button className="save-btn" onClick={saveContent}>
+              Lưu nội dung
+            </button>
           </div>
         )}
       </div>

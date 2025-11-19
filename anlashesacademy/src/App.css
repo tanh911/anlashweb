@@ -1,52 +1,217 @@
-#root {
-  max-width: 100%;
-  text-align: center;
-  min-height: 100vh; /* THÊM DÒNG NÀY */
-  display: flex; /* THÊM DÒNG NÀY */
-  flex-direction: column; /* THÊM DÒNG NÀY */
+/* --- Layout Desktop --- */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* App Wrapper - Bao bọc toàn bộ ứng dụng */
+.app-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
-header {
-}
-main {
-  border: 4px solid #ffffff;
-  border-radius: 12px;
+/* Content Wrapper - Chiếm không gian còn lại */
+.content-wrapper {
   flex: 1;
-  margin: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.layout {
+  display: flex;
+  flex: 1; /* QUAN TRỌNG: Chiếm không gian còn lại */
+  width: 100%;
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 20px; /* THÊM PADDING TRÊN/DƯỚI */
+  gap: 20px;
+}
+
+.hero-title {
+  font-family: "Playfair Display", "Times New Roman", serif;
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: #2c2c2c;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+.sidebar {
+  min-width: 150px;
+  background: #ffffff;
+  border: 2px solid #ececec;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  height: fit-content;
+  max-height: 500px;
+  top: 20px;
+  z-index: 3;
+}
+
+.ad-box {
+  height: 250px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #666;
+  border: 1px dashed #ccc;
+  width: 200px;
+}
+
+.main-content {
+  flex: 1;
+  background: #ffffff;
+  border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  min-height: auto; /* THAY ĐỔI: từ 600px thành auto */
+}
+
+/* --- Footer --- */
+.footer {
+  width: 100%;
+  height: 100px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(90deg, #1f2937, #111827);
+  color: #f3f4f6;
+  font-family: "Inter", sans-serif;
+  z-index: 2;
+  margin-top: auto; /* QUAN TRỌNG: Đẩy footer xuống dưới cùng */
+  padding: 0 20px;
+}
+
+.footer div {
+  text-align: center;
+  flex: 1;
+}
+
+.btn-delete {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(255, 0, 0, 0.8);
+  color: white;
+  border: none;
+  cursor: pointer;
+  z-index: 9999;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  opacity: 0.9;
+  transition: opacity 0.2s;
+}
+
+.btn-delete:hover {
+  opacity: 1;
+  background: rgba(255, 0, 0, 1);
+}
+
+.ad-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.ad-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.ad-image.blink-pulse {
+  animation: blinkPulse 2s infinite;
+}
+
+@keyframes blinkPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.effect-controls {
+  display: none;
+}
+
+/* --- Responsive Mobile --- */
+@media (max-width: 900px) {
+  .layout {
+    flex-direction: column;
+    padding: 15px;
+    gap: 15px;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: unset;
+    position: relative;
+    top: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+  }
+
+  .ad-box {
+    width: 100%;
+    height: 120px;
+    margin-bottom: 0;
+  }
+
+  .main-content {
+    width: 100%;
+    min-height: 400px;
+  }
+
+  .footer {
+    height: auto;
+    padding: 20px;
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .btn-delete {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+
+  .ad-box {
+    position: relative;
+  }
+}
+
+/* Small Mobile */
+@media (max-width: 480px) {
+  .sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .ad-box {
+    height: 100px;
+  }
+
+  .hero-title {
+    font-size: 2.5rem;
+  }
 }

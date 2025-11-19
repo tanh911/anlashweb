@@ -2,7 +2,6 @@
 .appointment-container {
   max-width: 1000px;
   margin: 0 auto;
-  padding: 2rem;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   color: #333;
 }
@@ -11,7 +10,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  padding-left: 30%;
 }
 
 .appointment-header h1 {
