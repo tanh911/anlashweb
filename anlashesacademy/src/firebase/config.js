@@ -1,8 +1,9 @@
 // src/firebase/config.js
 import { initializeApp } from "firebase/app";
-import { getStorage, connectStorageEmulator } from "firebase/storage";
-import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
-
+//import { getStorage, connectStorageEmulator } from "firebase/storage";
+//import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
+import { getFirestore } from "firebase/firestore";
 const firebaseConfig = {
   apiKey: "AIzaSyCNw813rVFbhq3QOTUGLn2WDguk38TujUk",
   authDomain: "myfirstproject-bc7c4.firebaseapp.com",
@@ -17,9 +18,9 @@ const app = initializeApp(firebaseConfig);
 const storage = getStorage(app);
 const db = getFirestore(app);
 
-if (import.meta.env.VITE_USE_FIREBASE_EMULATOR === "true") {
-  connectStorageEmulator(storage, "localhost", 9199);
-  connectFirestoreEmulator(db, "localhost", 8080);
-}
+// if (import.meta.env.VITE_USE_FIREBASE_EMULATOR === "true") {
+//   connectStorageEmulator(storage, "localhost", 9199);
+//   connectFirestoreEmulator(db, "localhost", 8080);
+// }
 
 export { app, storage, db };

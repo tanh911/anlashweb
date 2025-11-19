@@ -49,13 +49,24 @@ export default function Navbar({ loggedIn, onLogout }) {
               </li>
               <li className="nav-item">
                 <Link to="/about" className="nav-link" onClick={closeMenu}>
-                  Về Chúng Tôi
+                  Các khóa học
                 </Link>
               </li>
-              <li className="nav-item">
-                <Link to="/contact" className="nav-link" onClick={closeMenu}>
-                  Liên Hệ
-                </Link>
+              <li className="nav-item mobile-auth">
+                {!loggedIn ? (
+                  <Link to="/login" className="nav-link" onClick={closeMenu}>
+                    Đăng nhập
+                  </Link>
+                ) : (
+                  <>
+                    <Link to="/admin" className="nav-link" onClick={closeMenu}>
+                      Admin Panel
+                    </Link>
+                    <button onClick={onLogout} className="nav-link logout-btn">
+                      Đăng xuất
+                    </button>
+                  </>
+                )}
               </li>
             </ul>
           </div>

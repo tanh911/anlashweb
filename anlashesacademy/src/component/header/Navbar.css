@@ -11,7 +11,7 @@
   backdrop-filter: blur(10px);
   position: sticky;
   top: 0;
-  z-index: 1000;
+  z-index: 9999;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
@@ -28,7 +28,7 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 2rem;
-  height: 80px;
+  height: 100%;
 }
 
 /* Hai nửa navbar */
@@ -63,6 +63,8 @@
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0;
+  cursor: pointer;
+  text-decoration: none;
 }
 
 /* Menu */
@@ -110,29 +112,29 @@
   width: 60%;
 }
 
-/* Actions */
+/* Actions - CHỈ HIỆN 1 NÚT */
 .nav-actions {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
 
-.btn-search,
-.btn-profile {
+/* Ẩn nút Đăng xuất trong nav-actions trên desktop */
+.nav-actions .logout-btn {
+  cursor: pointer;
+  color: #ff7875;
+}
+
+/* Chỉ hiển thị Admin Panel hoặc Đăng nhập */
+.nav-actions .nav-link {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  font-size: 0.9rem;
-  cursor: pointer;
-  padding: 0.6rem 1.2rem;
   border-radius: 8px;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
-  font-weight: 500;
 }
 
-.btn-search:hover,
-.btn-profile:hover {
+.nav-actions .nav-link:hover {
   background: rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
 }
@@ -167,10 +169,22 @@
   transform: rotate(-45deg) translate(6px, -6px);
 }
 
-.logout-btn {
-  background-color: #ff4d4f;
+/* ========== RESPONSIVE DESIGN ========== */
+
+/* Tablet & Desktop: 769px trở lên */
+@media (min-width: 769px) {
+  /* Đảm bảo nav-actions chỉ hiện 1 nút */
+  .nav-actions {
+    display: flex;
+  }
+
+  /* Ẩn phần auth trong menu trên desktop */
+  .mobile-auth {
+    display: none;
+  }
 }
-/* Responsive */
+
+/* Mobile: 768px trở xuống */
 @media (max-width: 768px) {
   .nav-container {
     padding: 0 1rem;
@@ -180,17 +194,20 @@
     gap: 1rem;
   }
 
+  /* Ẩn menu desktop */
   .nav-menu {
     position: fixed;
     left: -100%;
-    top: 80px;
+    top: 70px;
     flex-direction: column;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     width: 100%;
-    text-align: center;
-    transition: 0.4s;
+    height: calc(100vh - 70px);
+    text-align: left;
+    transition: 0.4s ease-in-out;
     padding: 1rem 0;
     gap: 0;
+    overflow-y: auto;
   }
 
   .nav-menu.active {
@@ -198,42 +215,128 @@
   }
 
   .nav-item {
-    margin: 0.3rem 0;
+    margin: 0;
+    width: 100%;
   }
 
   .nav-link {
-    padding: 1rem 2rem;
+    padding: 1.2rem 2rem;
     border-radius: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 1rem;
+    display: block;
+    width: 100%;
+    text-align: left;
   }
 
   .nav-link::before {
     display: none;
   }
 
+  .nav-link:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: none;
+  }
+
+  /* Ẩn actions desktop */
   .nav-actions {
     display: none;
   }
 
+  /* Hiển thị hamburger */
   .hamburger {
     display: flex;
   }
 
-  /* Hiển thị actions trong menu mobile */
-  .nav-menu.active ~ .nav-right .nav-actions {
-    display: flex;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(20px);
-    padding: 1rem;
-    justify-content: space-around;
+  /* Phần đăng nhập/admin trong menu mobile */
+  .mobile-auth {
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    margin-top: 1rem;
+    padding-top: 1rem;
+  }
+
+  .mobile-auth .nav-link {
+    border-bottom: none;
+  }
+
+  .mobile-auth .logout-btn {
+    background-color: #ff4d4f;
+    border: none;
+    color: white;
+    padding: 1.2rem 2rem;
+    border-radius: 0;
+    width: 100%;
+    text-align: left;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    display: block; /* Hiện nút logout trong mobile */
+  }
+
+  .mobile-auth .logout-btn:hover {
+    background-color: #ff7875;
+  }
+
+  .logo-container img {
+    height: 32px;
+    width: 32px;
+  }
+
+  .nav-logo {
+    font-size: 1.2rem;
+  }
+}
+
+/* Small Mobile: 480px trở xuống */
+@media (max-width: 480px) {
+  .navbar {
+    height: 60px;
+  }
+
+  .nav-container {
+    padding: 0 0.8rem;
+  }
+
+  .nav-menu {
+    top: 60px;
+    height: calc(100vh - 60px);
+  }
+
+  .logo-container {
+    gap: 8px;
+  }
+
+  .logo-container img {
+    height: 28px;
+    width: 28px;
+  }
+
+  .nav-logo {
+    font-size: 1.1rem;
+  }
+
+  .nav-link {
+    padding: 1rem 1.5rem;
+    font-size: 0.95rem;
+  }
+
+  .hamburger {
+    padding: 0.3rem;
+  }
+
+  .hamburger span {
+    width: 22px;
+    height: 2.5px;
   }
 }
 
 /* Smooth transitions */
 .nav-container * {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ngăn scroll khi menu mobile mở */
+body.menu-open {
+  overflow: hidden;
 }
