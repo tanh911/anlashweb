@@ -3,6 +3,7 @@ import appointmentRoutes from "./appointmentRoutes.js";
 import scheduleRoutes from "./scheduleRoutes.js";
 import authRoutes from "./authRoutes.js";
 import service from "./servicesRoutes.js";
+import contentRoutes from "./contentRoutes.js";
 const router = express.Router();
 
 // Health check
@@ -19,4 +20,5 @@ router.use("/appointments", appointmentRoutes);
 router.use("/schedule", scheduleRoutes);
 router.use("/services", service);
 router.use("/auth", authRoutes);
+router.use("/content", contentRoutes);
 export default router;
