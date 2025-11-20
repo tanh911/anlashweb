@@ -12,42 +12,89 @@ export default function Slider({ loggedIn }) {
   const [showModal, setShowModal] = useState(false);
   const [modalImage, setModalImage] = useState("");
   const timeoutRef = useRef(null);
-
-  // Lấy dữ liệu realtime
   useEffect(() => {
     const unsubscribe = listenToSliderImages((images) => {
-      const mapped = images.map((url, idx) => ({ id: idx + 1, image: url }));
-      setSlides(mapped);
+      if (images && Array.isArray(images)) {
+        const mapped = images.map((url, idx) => ({
+          id: idx + 1,
+          image: url,
+        }));
+        setSlides(mapped);
+        setCurrentIndex(0);
+      } else {
+        console.log("❌ Images không tồn tại hoặc không phải array");
+      }
     });
+
     return unsubscribe;
   }, []);
 
+  // Lấy dữ liệu realtime - FIX: Thêm error handling
+  useEffect(() => {
+    try {
+      const unsubscribe = listenToSliderImages((images) => {
+        if (images && Array.isArray(images)) {
+          const mapped = images.map((url, idx) => ({
+            id: idx + 1,
+            image: url,
+          }));
+          setSlides(mapped);
+          // Reset currentIndex khi slides thay đổi
+          setCurrentIndex(0);
+        }
+      });
+      return unsubscribe;
+    } catch (error) {
+      console.error("Lỗi khi lấy slider images:", error);
+    }
+  }, []);
+
+  // Auto slide - FIX: Clear timeout properly
   useEffect(() => {
     if (isPaused || slides.length <= 1) return;
-    timeoutRef.current = setTimeout(() => nextSlide(), 3000);
-    return () => clearTimeout(timeoutRef.current);
+
+    timeoutRef.current = setTimeout(() => {
+      setCurrentIndex((prev) => (prev + 1) % slides.length);
+    }, 3000);
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
   }, [currentIndex, isPaused, slides.length]);
 
-  const nextSlide = () => setCurrentIndex((prev) => (prev + 1) % slides.length);
-  const prevSlide = () =>
-    setCurrentIndex((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+  // const nextSlide = () => {
+  //   setCurrentIndex((prev) => (prev + 1) % slides.length);
+  // };
+
+  // const prevSlide = () => {
+  //   setCurrentIndex((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+  // };
 
   const deleteSlide = async (id) => {
-    if (!loggedIn) return;
-    const newSlides = slides.filter((s) => s.id !== id);
-    await saveSliderImages(newSlides.map((s) => s.image));
+    if (!loggedIn || !window.confirm("Bạn có chắc muốn xóa ảnh này?")) return;
+
+    try {
+      const newSlides = slides.filter((s) => s.id !== id);
+      const imageUrls = newSlides.map((s) => s.image);
+      await saveSliderImages(imageUrls);
+    } catch (error) {
+      console.error("Lỗi khi xóa slide:", error);
+      alert("Lỗi khi xóa ảnh");
+    }
   };
 
   // Mở modal xem ảnh to
-  const openImageModal = (imageUrl) => {
+  const openImageModal = (imageUrl, index) => {
     setModalImage(imageUrl);
+    setCurrentIndex(index); // Set đúng index khi click
     setShowModal(true);
   };
 
   // Đóng modal
   const closeImageModal = () => {
     setShowModal(false);
-    setModalImage("");
   };
 
   // Chuyển ảnh trong modal
@@ -94,6 +141,17 @@ export default function Slider({ loggedIn }) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [showModal, currentIndex, slides.length]);
 
+  // FIX: Thêm check slides rỗng
+  if (!slides || slides.length === 0) {
+    return (
+      <div className="slider-wrapper">
+        <div className="no-slides">
+          <p>Chưa có ảnh nào trong slider</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div
@@ -102,24 +160,17 @@ export default function Slider({ loggedIn }) {
         onMouseLeave={() => setIsPaused(false)}
       >
         <div className="slider-container">
-          {slides.length > 1 && (
-            <>
-              <button className="nav-btn prev-btn" onClick={prevSlide}>
-                ‹
-              </button>
-            </>
-          )}
           <div className="slider-viewport">
             <div
               className="slides-container"
               style={{ transform: `translateX(-${currentIndex * 100}%)` }}
             >
-              {slides.map((slide) => (
+              {slides.map((slide, index) => (
                 <div key={slide.id} className="slide">
                   <div
                     className="slide-image"
                     style={{ backgroundImage: `url(${slide.image})` }}
-                    onClick={() => openImageModal(slide.image)}
+                    onClick={() => openImageModal(slide.image, index)}
                   >
                     {loggedIn && (
                       <button
@@ -142,17 +193,11 @@ export default function Slider({ loggedIn }) {
               ))}
             </div>
           </div>
-
-          {slides.length > 1 && (
-            <>
-              <button className="nav-btn next-btn" onClick={nextSlide}>
-                ›
-              </button>
-            </>
-          )}
         </div>
+        <div></div>
 
         {/* Dots indicator */}
+
         {slides.length > 1 && (
           <div className="dots-container">
             {slides.map((_, index) => (

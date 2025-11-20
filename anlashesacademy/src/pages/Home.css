@@ -86,7 +86,7 @@
   background: #667eea;
   color: white;
   padding: 0.3rem 0.8rem;
-  border-radius: 20px;
+  border-radius: 15px;
   font-size: 0.8rem;
   font-weight: 500;
 }
@@ -178,67 +178,191 @@
 .second-container {
   text-align: center;
   color: white;
-  border-radius: 20px;
-  box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  background: linear-gradient(135deg, #667eea 20%, #764ba2 100%);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   width: 100%;
-  padding: 3rem 2rem;
-  margin: 2rem 0;
+  padding: 4rem 2rem;
+  margin: 3rem 0;
+  position: relative;
+  overflow: hidden;
 }
+
+/* Hiệu ứng nền động */
 
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 2rem;
-  margin-top: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
 }
 
 .feature-item {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 15px;
-  padding: 2rem;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
   text-align: center;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
 }
 
-.feature-item:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-}
+/* Hiệu ứng hover cho feature item */
 
+/* Icon styles */
 .feature-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
+  font-size: 3.5rem;
+  margin-bottom: 1.5rem;
+  display: block;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  transition: transform 0.3s ease;
 }
 
+.feature-item:hover .feature-icon {
+  transform: scale(1.1) rotate(5deg);
+}
+
+/* Text styles */
 .feature-item h3 {
   font-size: 1.5rem;
   margin-bottom: 1rem;
   color: white;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .feature-item p {
-  color: rgba(255, 255, 255, 0.9);
-  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.7;
   font-size: 1rem;
+  font-weight: 400;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .second-container {
+    padding: 3rem 1.5rem;
+    margin: 2rem 0;
+  }
+
+  .features-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .feature-item {
+    padding: 2rem 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .second-container {
+    padding: 2.5rem 1rem;
+    border-radius: 16px;
+    margin: 1.5rem 0;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+    max-width: 400px;
+  }
+
+  .feature-item {
+    padding: 2rem 1rem;
+  }
+
+  .feature-icon {
+    font-size: 3rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .feature-item h3 {
+    font-size: 1.3rem;
+  }
+
+  .feature-item p {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .second-container {
+    padding: 2rem 0.8rem;
+  }
+
+  .feature-item {
+    padding: 1.8rem 1rem;
+  }
+
+  .feature-icon {
+    font-size: 2.8rem;
+  }
+
+  .feature-item h3 {
+    font-size: 1.2rem;
+  }
+}
+
+/* Hiệu ứng loading khi scroll vào view */
+.second-container {
+  opacity: 0;
+  transform: translateY(30px);
+  animation: fadeInUp 0.8s ease forwards;
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Stagger animation cho các feature items */
+.feature-item:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.feature-item:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.feature-item:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.feature-item {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: slideInUp 0.6s ease forwards;
+}
+
+@keyframes slideInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .third-container {
-  padding: 4rem 2rem;
+  padding: 2.5rem 1.5rem; /* Giảm padding */
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   text-align: center;
-  border-radius: 20px;
-  margin: 2rem auto;
-  max-width: 1200px;
-  box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);
+  border-radius: 10px;
+  margin: 1.5rem auto; /* Giảm margin */
+  max-width: 1000px; /* Giảm max-width */
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3); /* Giảm shadow */
   position: relative;
   overflow: hidden;
   width: 100%;
+  height: 250px;
 }
 
 .third-container::before {
@@ -280,7 +404,7 @@
   border: none;
   padding: 15px 40px;
   font-size: 1.1rem;
-  border-radius: 50px;
+  border-radius: 15px;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
@@ -415,7 +539,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 9999;
   padding: 20px;
 }
 
@@ -495,5 +619,6 @@
 
   .post-editor-form {
     padding: 15px;
+    z-index: 9999;
   }
 }

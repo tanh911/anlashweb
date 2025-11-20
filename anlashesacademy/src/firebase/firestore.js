@@ -3,45 +3,70 @@ import { app } from "./config";
 
 const db = getFirestore(app);
 
-const SLIDER_DOC = "settings/slider";
+// =========================
+// SLIDER
+// =========================
 
+const SLIDER_REF = doc(db, "settings", "slider");
+
+// Lắng nghe realtime
 export function listenToSliderImages(callback) {
-  const docRef = doc(db, SLIDER_DOC);
-  return onSnapshot(docRef, (snap) => {
-    if (snap.exists()) {
-      callback(snap.data().images || []);
-    } else {
+  return onSnapshot(SLIDER_REF, (snap) => {
+    if (!snap.exists()) {
+      // Tự tạo document nếu chưa có
+      setDoc(SLIDER_REF, { images: [] });
       callback([]);
+      return;
     }
+    const data = snap.data();
+    callback(data.images || []);
   });
 }
 
-export async function saveSliderImages(images) {
-  const docRef = doc(db, SLIDER_DOC);
-  await setDoc(docRef, { images });
-}
-
-// Lưu ads vào Firestore
-export const saveAds = async (ads) => {
+// Lưu slider images
+// firestore.js - Kiểm tra hàm này
+export const saveSliderImages = async (images) => {
   try {
-    await setDoc(doc(db, "settings", "ads"), { images: ads });
-    console.log("Ads saved successfully");
+    console.log("💾 Đang lưu slider images:", images);
+
+    // Đảm bảo images là array
+    if (!Array.isArray(images)) {
+      console.error("❌ Images không phải array:", images);
+      return;
+    }
+
+    console.log(`📊 Số lượng ảnh sẽ lưu: ${images.length}`);
+
+    const docRef = doc(db, "settings", "slider");
+    await setDoc(docRef, {
+      images: images,
+      updatedAt: new Date(),
+    });
+
+    console.log("✅ Lưu slider images thành công");
   } catch (error) {
-    console.error("Error saving ads:", error);
+    console.error("❌ Lỗi khi lưu slider images:", error);
     throw error;
   }
 };
 
-// Lắng nghe thay đổi ads
-export const listenToAds = (callback) => {
-  const unsubscribe = onSnapshot(doc(db, "settings", "ads"), (docSnapshot) => {
-    if (docSnapshot.exists()) {
-      const data = docSnapshot.data();
-      callback(data.images || []);
-    } else {
-      callback([]);
-    }
-  });
+// =========================
+// ADS
+// =========================
 
-  return unsubscribe;
+const ADS_REF = doc(db, "settings", "ads");
+
+export const saveAds = async (ads) => {
+  await setDoc(ADS_REF, { images: ads });
+};
+
+export const listenToAds = (callback) => {
+  return onSnapshot(ADS_REF, (snap) => {
+    if (!snap.exists()) {
+      setDoc(ADS_REF, { images: [] });
+      callback([]);
+      return;
+    }
+    callback(snap.data().images || []);
+  });
 };

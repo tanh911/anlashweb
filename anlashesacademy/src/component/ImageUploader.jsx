@@ -20,6 +20,7 @@ const ImageUploader = ({
     return null;
   }
 
+  // ImageUploader.jsx - Sửa hàm handleFileUpload
   const handleFileUpload = async (file) => {
     if (!file) return;
 
@@ -37,31 +38,40 @@ const ImageUploader = ({
     setError("");
 
     try {
-      console.log("Bắt đầu upload file:", file.name);
+      console.log("🔄 Bắt đầu upload file:", file.name);
+      console.log("📸 Existing images:", existingImages);
+      console.log("🎯 Upload type:", uploadType);
 
-      // DÙNG CLOUDINARY THAY VÌ FIREBASE STORAGE
+      // DÙNG CLOUDINARY
       const downloadURL = await uploadToCloudinary(file);
-      console.log("Upload thành công:", downloadURL);
+      console.log("✅ Upload thành công:", downloadURL);
 
       // Xử lý khác nhau cho slider và ad
       if (uploadType === "slider") {
-        const updatedImages = [...existingImages, downloadURL];
+        // QUAN TRỌNG: Đảm bảo existingImages là array
+        const currentImages = Array.isArray(existingImages)
+          ? existingImages
+          : [];
+        const updatedImages = [...currentImages, downloadURL];
+
+        console.log("🖼️ Updated slider images:", updatedImages);
+
         await saveSliderImages(updatedImages);
-        console.log("Đã lưu slider images");
+        console.log("✅ Đã lưu slider images");
       } else if (uploadType === "ad") {
         const updatedAds = [...existingAds];
         updatedAds[adIndex] = downloadURL;
         await saveAds(updatedAds);
-        console.log("Đã lưu ads");
+        console.log("✅ Đã lưu ads");
       }
 
       if (onUploadSuccess) {
         onUploadSuccess(downloadURL);
       }
 
-      alert("Upload ảnh thành công!");
+      alert("✅ Upload ảnh thành công!");
     } catch (error) {
-      console.error("Lỗi khi upload ảnh:", error);
+      console.error("❌ Lỗi khi upload ảnh:", error);
       setError("Lỗi khi upload ảnh. Vui lòng thử lại.");
     } finally {
       setUploading(false);
