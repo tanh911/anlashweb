@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import "./Login.css";
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -7,14 +8,19 @@ const Login = ({ setAdmin }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError("");
+
     try {
       const res = await axios.post(
         `${API_BASE}/auth/register`,
         { username, password },
-        { withCredentials: true } // gửi cookie
+        { withCredentials: true }
       );
       if (res.data.success) {
         alert("Đăng ký thành công! Vui lòng đăng nhập.");
@@ -24,79 +30,85 @@ const Login = ({ setAdmin }) => {
       }
     } catch (err) {
       console.error("Registration failed:", err.response?.data);
-      alert(err.response?.data?.error || "Registration failed");
+      setError(err.response?.data?.error || "Registration failed");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError("");
+
     try {
-      const res = await axios.post(
-        `${API_BASE}/auth/login`,
-        { username, password }
-        // gửi cookie
-      );
+      const res = await axios.post(`${API_BASE}/auth/login`, {
+        username,
+        password,
+      });
 
       if (res.data.success) {
-        const token = res.data.token; // JWT from backend
-        localStorage.setItem("token", token); // save locally
-        setAdmin(res.data.data); // lưu vào state App
+        const token = res.data.token;
+        localStorage.setItem("token", token);
+        setAdmin(res.data.data);
         setUsername("");
         setPassword("");
       }
     } catch (err) {
       console.error("Login failed:", err.response?.data);
-      alert(err.response?.data?.error || "Login failed");
+      setError(err.response?.data?.error || "Login failed");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: "50px auto" }}>
-      <h2>{isRegistering ? "Đăng ký Admin" : "Đăng nhập Admin"}</h2>
-      <form onSubmit={isRegistering ? handleRegister : handleLogin}>
-        <input
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          style={{
-            display: "block",
-            width: "100%",
-            marginBottom: 10,
-            padding: 8,
-          }}
-          autoComplete="username"
-        />
-        <input
-          placeholder="Password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={{
-            display: "block",
-            width: "100%",
-            marginBottom: 10,
-            padding: 8,
-          }}
-          autoComplete="current-password"
-        />
-        <button type="submit" style={{ padding: 10, width: "100%" }}>
-          {isRegistering ? "Đăng ký" : "Đăng nhập"}
-        </button>
-      </form>
-      <p style={{ marginTop: 10, textAlign: "center" }}>
-        {/* {isRegistering ? "Đã có tài khoản?" : "Chưa có tài khoản?"}{" "}
-        <button
-          style={{
-            color: "blue",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-          }}
-          onClick={() => setIsRegistering(!isRegistering)}
+    <div className="login-container">
+      <div className="login-form-container">
+        <h2 className="login-title">
+          {isRegistering ? "Đăng ký Admin" : "Đăng nhập Admin"}
+        </h2>
+
+        {error && <div className="error-message">{error}</div>}
+
+        <form
+          className="login-form"
+          onSubmit={isRegistering ? handleRegister : handleLogin}
         >
-          {isRegistering ? "Đăng nhập" : "Đăng ký"}
-        </button> */}
-      </p>
+          <div className="input-group">
+            <input
+              className="login-input"
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+              required
+            />
+            <span className="input-icon">👤</span>
+          </div>
+
+          <div className="input-group">
+            <input
+              className="login-input"
+              placeholder="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
+            <span className="input-icon">🔒</span>
+          </div>
+
+          <button
+            type="submit"
+            className={`login-button ${isLoading ? "loading" : ""}`}
+            disabled={isLoading}
+          >
+            {isLoading ? "" : isRegistering ? "Đăng ký" : "Đăng nhập"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 };

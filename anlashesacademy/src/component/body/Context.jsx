@@ -1,147 +1,270 @@
-import React, { useState } from "react";
+// components/body/Context.jsx
+import React, { useState, useRef } from "react";
+import axios from "axios";
+import { uploadToCloudinary } from "../../utils/cloudinaryUpload";
 import "./Context.css";
 
-const ContentEditor = ({ homeContent, onSave }) => {
-  const [editingContent, setEditingContent] = useState(
-    JSON.parse(JSON.stringify(homeContent))
-  );
-  const [isEditing, setIsEditing] = useState(false);
+const API_BASE = "http://localhost:5000/api";
+
+const PostEditor = ({ onSave, onCancel }) => {
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [tags, setTags] = useState([]);
+  const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef(null);
+
+  // Hàm upload ảnh trực tiếp từ FE
+  const handleImageUpload = async (file) => {
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Vui lòng chọn file ảnh (JPEG, PNG, GIF)!");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Kích thước ảnh không được vượt quá 5MB");
+      return;
+    }
+
+    setUploadingImage(true);
+
+    try {
+      console.log("🔄 Uploading image to Cloudinary:", file.name);
+
+      // Upload trực tiếp lên Cloudinary từ FE
+      const imageUrl = await uploadToCloudinary(file);
+
+      console.log("✅ Image uploaded:", imageUrl);
+
+      // Chèn ảnh vào vị trí con trỏ
+      insertImageAtCursor(imageUrl, file.name);
+    } catch (error) {
+      console.error("❌ Error uploading image:", error);
+      alert("Lỗi khi upload ảnh: " + error.message);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // Hàm chèn ảnh vào vị trí con trỏ
+  const insertImageAtCursor = (imageUrl, altText) => {
+    const textarea = document.querySelector(".content-textarea");
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    const imageMarkdown = `\n![${altText}](${imageUrl})\n`;
+
+    const newContent =
+      content.substring(0, start) + imageMarkdown + content.substring(end);
+    setContent(newContent);
+
+    // Focus lại textarea và đặt con trỏ sau ảnh
+    setTimeout(() => {
+      textarea.focus();
+      textarea.selectionStart = start + imageMarkdown.length;
+      textarea.selectionEnd = start + imageMarkdown.length;
+    }, 0);
+  };
+
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      handleImageUpload(file);
+    }
+    event.target.value = "";
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleImageUpload(files[0]);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.currentTarget.classList.add("drag-over");
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove("drag-over");
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
 
   const handleSave = async () => {
-    setSaving(true);
+    if (!title.trim()) {
+      alert("Vui lòng nhập tiêu đề");
+      return;
+    }
+
+    if (!content.trim()) {
+      alert("Vui lòng nhập nội dung");
+      return;
+    }
+
+    const postData = {
+      title: title.trim(),
+      content: content.trim(),
+      author: "Admin",
+      status: "published",
+      tags: tags.filter((tag) => tag.trim() !== ""),
+    };
+
     try {
-      await onSave(editingContent);
-      setIsEditing(false);
+      setSaving(true);
+      const response = await axios.post(`${API_BASE}/content/posts`, postData);
+
+      console.log("✅ Post created successfully:", response.data);
+      onSave();
+      alert("✅ Bài viết đã được đăng thành công!");
     } catch (error) {
-      // Error handled in parent
-      console.log(error);
+      console.error("❌ Error creating post:", error);
+      alert(
+        `Lỗi khi tạo bài viết: ${
+          error.response?.data?.message || error.message
+        }`
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  const handleCancel = () => {
-    setEditingContent(JSON.parse(JSON.stringify(homeContent)));
-    setIsEditing(false);
+  const addTag = () => {
+    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
+      setTags([...tags, tagInput.trim()]);
+      setTagInput("");
+    }
   };
 
-  const updateFeature = (index, field, value) => {
-    const updatedFeatures = [...editingContent.features];
-    updatedFeatures[index][field] = value;
-    setEditingContent({ ...editingContent, features: updatedFeatures });
+  const removeTag = (tagToRemove) => {
+    setTags(tags.filter((tag) => tag !== tagToRemove));
   };
 
-  const updateStat = (index, field, value) => {
-    const updatedStats = [...editingContent.stats];
-    updatedStats[index][field] = value;
-    setEditingContent({ ...editingContent, stats: updatedStats });
+  const handleTagInputKeyPress = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addTag();
+    }
   };
-
-  const updateCta = (field, value) => {
-    setEditingContent({
-      ...editingContent,
-      cta: { ...editingContent.cta, [field]: value },
-    });
-  };
-
-  if (!isEditing) {
-    return (
-      <div className="content-editor-toggle">
-        <button onClick={() => setIsEditing(true)} className="edit-content-btn">
-          📝 Chỉnh sửa bài viết
-        </button>
-      </div>
-    );
-  }
 
   return (
-    <div className="content-editor">
-      <h3>Chỉnh sửa bài viết</h3>
+    <div className="post-editor-overlay">
+      <div className="post-editor">
+        <div className="editor-header">
+          <h2>✏️ Viết Bài Mới</h2>
+          <div className="editor-actions">
+            <button onClick={onCancel} className="cancel-btn" disabled={saving}>
+              Hủy
+            </button>
+            <button onClick={handleSave} disabled={saving} className="save-btn">
+              {saving ? "⏳ Đang đăng..." : "📤 Đăng bài"}
+            </button>
+          </div>
+        </div>
 
-      {/* Features Editor */}
-      <div className="editor-section">
-        <h4>Features</h4>
-        {editingContent.features.map((feature, index) => (
-          <div key={index} className="editor-item">
-            <h5>Feature {index + 1}</h5>
+        <div className="editor-body">
+          <div className="form-group">
+            <label>📝 Tiêu đề bài viết</label>
             <input
               type="text"
-              value={feature.icon}
-              onChange={(e) => updateFeature(index, "icon", e.target.value)}
-              placeholder="Icon"
-            />
-            <input
-              type="text"
-              value={feature.title}
-              onChange={(e) => updateFeature(index, "title", e.target.value)}
-              placeholder="Title"
-            />
-            <textarea
-              value={feature.description}
-              onChange={(e) =>
-                updateFeature(index, "description", e.target.value)
-              }
-              placeholder="Description"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Nhập tiêu đề hấp dẫn..."
+              disabled={saving}
             />
           </div>
-        ))}
-      </div>
 
-      {/* CTA Editor */}
-      <div className="editor-section">
-        <h4>Call to Action</h4>
-        <input
-          type="text"
-          value={editingContent.cta.title}
-          onChange={(e) => updateCta("title", e.target.value)}
-          placeholder="CTA Title"
-        />
-        <textarea
-          value={editingContent.cta.description}
-          onChange={(e) => updateCta("description", e.target.value)}
-          placeholder="CTA Description"
-        />
-        <input
-          type="text"
-          value={editingContent.cta.buttonText}
-          onChange={(e) => updateCta("buttonText", e.target.value)}
-          placeholder="Button Text"
-        />
-      </div>
+          <div className="form-group">
+            <label>📄 Nội dung bài viết</label>
+            <div className="editor-toolbar">
+              <button
+                type="button"
+                onClick={triggerFileInput}
+                disabled={uploadingImage || saving}
+                className="image-upload-btn"
+              >
+                {uploadingImage ? "⏳ Đang upload..." : "🖼️ Chèn ảnh"}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                disabled={uploadingImage || saving}
+                style={{ display: "none" }}
+              />
+            </div>
 
-      {/* Stats Editor */}
-      <div className="editor-section">
-        <h4>Statistics</h4>
-        {editingContent.stats.map((stat, index) => (
-          <div key={index} className="editor-item">
-            <h5>Stat {index + 1}</h5>
-            <input
-              type="text"
-              value={stat.number}
-              onChange={(e) => updateStat(index, "number", e.target.value)}
-              placeholder="Number"
-            />
-            <input
-              type="text"
-              value={stat.label}
-              onChange={(e) => updateStat(index, "label", e.target.value)}
-              placeholder="Label"
-            />
+            <div
+              className="content-editor-wrapper"
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+            >
+              <textarea
+                className="content-textarea"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Viết nội dung bài viết của bạn ở đây... 
+Bạn có thể:
+• Kéo thả ảnh vào khung này
+• Click nút 'Chèn ảnh' để thêm ảnh
+• Ảnh sẽ được chèn vào vị trí con trỏ"
+                disabled={saving}
+                rows={15}
+              />
+            </div>
+
+            <div className="editor-hint">
+              💡 <strong>Mẹo:</strong> Kéo thả ảnh trực tiếp vào khung nội dung
+              hoặc click nút "Chèn ảnh"
+            </div>
           </div>
-        ))}
-      </div>
 
-      <div className="editor-actions">
-        <button onClick={handleSave} className="save-btn" disabled={saving}>
-          {saving ? "Saving..." : "Lưu bài viết"}
-        </button>
-        <button onClick={handleCancel} className="cancel-btn" disabled={saving}>
-          Hủy
-        </button>
+          <div className="form-group">
+            <label>🏷️ Tags (tối đa 5 tags)</label>
+            <div className="tags-input">
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyPress={handleTagInputKeyPress}
+                placeholder="Nhập tag và ấn Enter..."
+                disabled={saving || tags.length >= 5}
+              />
+              <button
+                onClick={addTag}
+                disabled={saving || !tagInput.trim() || tags.length >= 5}
+              >
+                Thêm
+              </button>
+            </div>
+            <div className="tags-list">
+              {tags.map((tag, index) => (
+                <span key={index} className="tag">
+                  #{tag}
+                  <button onClick={() => removeTag(tag)} disabled={saving}>
+                    ×
+                  </button>
+                </span>
+              ))}
+              {tags.length >= 5 && (
+                <div className="tags-limit">Đã đạt tối đa 5 tags</div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
-export default ContentEditor;
+export default PostEditor;
