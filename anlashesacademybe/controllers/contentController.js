@@ -1,6 +1,5 @@
-import Content from "../models/Content.js";
+import Post from "../models/Post.js";
 import Joi from "joi";
-
 // Validation schemas - cho phép string rỗng
 const featureSchema = Joi.object({
   icon: Joi.string().allow("").optional(),
@@ -119,59 +118,87 @@ export const updateHomeContent = async (req, res) => {
     });
   }
 };
-
-// ==================== BLOG POSTS ROUTES ====================
-
-// Tạo bài viết mới
-export const createPost = async (req, res) => {
+export const uploadPostImage = async (req, res) => {
   try {
-    const { error, value } = postSchema.validate(req.body);
-
-    if (error) {
+    if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: "Dữ liệu không hợp lệ: " + error.details[0].message,
+        message: "Vui lòng chọn file ảnh",
       });
     }
 
-    const { title, content, author, tags, isPublished } = req.body;
+    console.log("📤 Uploading post image:", req.file.originalname);
 
-    const newPost = {
-      title,
-      content,
-      author,
-      tags: tags || [],
-      isPublished: isPublished !== undefined ? isPublished : true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    // Upload lên Cloudinary
+    const imageUrl = await uploadToCloudinary(req.file);
+
+    console.log("✅ Image uploaded:", imageUrl);
+
+    res.status(200).json({
+      success: true,
+      message: "Upload ảnh thành công",
+      data: {
+        imageUrl: imageUrl,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error uploading post image:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi upload ảnh",
+      error: error.message,
+    });
+  }
+};
+// ==================== BLOG POSTS ROUTES ====================
+
+// Tạo bài viết mới
+// controllers/contentController.js
+export const createPost = async (req, res) => {
+  try {
+    console.log("📝 Creating new post with data:", req.body);
+
+    const { title, content, author, status, tags } = req.body;
+
+    // Validation đơn giản
+    if (!title || !title.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Tiêu đề là bắt buộc",
+      });
+    }
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Nội dung là bắt buộc",
+      });
+    }
+
+    const postData = {
+      title: title.trim(),
+      content: content.trim(),
+      author: author || "Admin",
+      status: status || "published",
+      tags: Array.isArray(tags) ? tags : [],
     };
 
-    const updatedContent = await Content.findOneAndUpdate(
-      { page: "home" },
-      {
-        $push: {
-          posts: {
-            $each: [newPost],
-            $sort: { createdAt: -1 },
-          },
-        },
-      },
-      {
-        new: true,
-        upsert: true,
-      }
-    );
+    const newPost = new Post(postData);
+    const savedPost = await newPost.save();
+
+    console.log("✅ Post created:", savedPost._id);
 
     res.status(201).json({
       success: true,
       message: "Bài viết đã được tạo thành công",
-      data: newPost,
+      data: savedPost,
     });
   } catch (error) {
-    console.error("Create post error:", error);
+    console.error("❌ Error creating post:", error);
     res.status(500).json({
       success: false,
-      message: "Lỗi server: " + error.message,
+      message: "Lỗi server khi tạo bài viết",
+      error: error.message,
     });
   }
 };
@@ -330,23 +357,28 @@ export const deletePost = async (req, res) => {
 };
 
 // Lấy bài viết published (cho public access)
+// controllers/contentController.js
 export const getPublishedPosts = async (req, res) => {
   try {
-    const content = await Content.findOne({ page: "home" });
+    console.log("📝 Fetching published posts...");
 
-    const publishedPosts =
-      content?.posts?.filter((post) => post.isPublished) || [];
+    const posts = await Post.find({ status: "published" })
+      .sort({ createdAt: -1 })
+      .select("-__v");
+
+    console.log(`✅ Found ${posts.length} published posts`);
 
     res.status(200).json({
       success: true,
-      data: publishedPosts,
-      total: publishedPosts.length,
+      data: posts,
+      count: posts.length,
     });
   } catch (error) {
-    console.error("Get published posts error:", error);
+    console.error("❌ Error fetching published posts:", error);
     res.status(500).json({
       success: false,
-      message: "Lỗi server: " + error.message,
+      message: "Error fetching published posts",
+      error: error.message,
     });
   }
 };
