@@ -62,11 +62,17 @@ export const saveAds = async (ads) => {
 
 export const listenToAds = (callback) => {
   return onSnapshot(ADS_REF, (snap) => {
+    console.log("🔥 Snapshot fired:", snap.exists());
     if (!snap.exists()) {
-      setDoc(ADS_REF, { images: [] });
+      console.log("⚪ Document does not exist");
       callback([]);
       return;
     }
+
+    console.log("📌 ADS data:", snap.data());
     callback(snap.data().images || []);
+  }, (err) => {
+    console.error("❌ Firestore listen ERROR:", err);
   });
 };
+

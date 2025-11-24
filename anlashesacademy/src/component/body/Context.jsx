@@ -120,6 +120,7 @@ const PostEditor = ({ onSave, onCancel }) => {
     try {
       setSaving(true);
       const token = localStorage.getItem("token");
+
       const response = await axios.post(`${API_BASE}/content/posts`, postData, {
         headers: {
           Authorization: `Bearer ${token}`,
