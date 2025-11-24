@@ -3,8 +3,7 @@ import React, { useState, useRef } from "react";
 import axios from "axios";
 import { uploadToCloudinary } from "../../utils/cloudinaryUpload";
 import "./Context.css";
-
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = import.meta.env.VITE_API_URL; || "http://localhost:5000/api";
 
 const PostEditor = ({ onSave, onCancel }) => {
   const [title, setTitle] = useState("");

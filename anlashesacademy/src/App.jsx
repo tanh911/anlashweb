@@ -22,8 +22,8 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import AdminPanel from "./pages/AdminPanel";
-
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = import.meta.env.VITE_API_URL;
+console.log(API_BASE);
 
 function App() {
   const [admin, setAdmin] = useState(null);

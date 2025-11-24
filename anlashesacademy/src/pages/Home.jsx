@@ -6,7 +6,8 @@ import "./Home.css";
 import PostEditor from "../component/body/Context.jsx";
 import { listenToSliderImages } from "../firebase/firestore.js"; // THÊM IMPORT NÀY
 import { Link, NavLink } from "react-router-dom";
-const API_BASE = "http://localhost:5000/api";
+
+const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function Home({ loggedIn }) {
   const [posts, setPosts] = useState([]);
