@@ -225,35 +225,40 @@ export const getAllPosts = async (req, res) => {
 };
 
 // Lấy bài viết theo ID
+// Lấy bài viết theo ID - SỬA LẠI HOÀN TOÀN
 export const getPostById = async (req, res) => {
   try {
     const { postId } = req.params;
 
-    const content = await Content.findOne(
-      {
-        page: "home",
-        "posts._id": postId,
-      },
-      {
-        "posts.$": 1,
-      }
-    );
+    console.log('🔍 Fetching post with ID:', postId);
 
-    if (!content || !content.posts || content.posts.length === 0) {
+    // Kiểm tra postId hợp lệ
+    if (!postId) {
+      return res.status(400).json({
+        success: false,
+        message: "ID bài viết không hợp lệ",
+      });
+    }
+
+    // Tìm bài viết trong model Post
+    const post = await Post.findById(postId);
+
+    console.log('📄 Post found:', post);
+
+    if (!post) {
       return res.status(404).json({
         success: false,
         message: "Không tìm thấy bài viết",
       });
     }
 
-    const post = content.posts[0];
-
     res.status(200).json({
       success: true,
       data: post,
     });
+
   } catch (error) {
-    console.error("Get post by ID error:", error);
+    console.error("❌ Get post by ID error:", error);
     res.status(500).json({
       success: false,
       message: "Lỗi server: " + error.message,
