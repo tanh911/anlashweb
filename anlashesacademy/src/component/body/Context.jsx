@@ -3,7 +3,7 @@ import React, { useState, useRef } from "react";
 import axios from "axios";
 import { uploadToCloudinary } from "../../utils/cloudinaryUpload";
 import "./Context.css";
-const API_BASE = import.meta.env.VITE_API_URL; || "http://localhost:5000/api";
+const API_BASE = import.meta.env.VITE_API_URL;
 
 const PostEditor = ({ onSave, onCancel }) => {
   const [title, setTitle] = useState("");
@@ -119,7 +119,12 @@ const PostEditor = ({ onSave, onCancel }) => {
 
     try {
       setSaving(true);
-      const response = await axios.post(`${API_BASE}/content/posts`, postData);
+      const token = localStorage.getItem("token");
+      const response = await axios.post(`${API_BASE}/content/posts`, postData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       console.log("✅ Post created successfully:", response.data);
       onSave();

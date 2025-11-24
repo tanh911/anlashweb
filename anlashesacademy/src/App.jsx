@@ -22,8 +22,8 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import AdminPanel from "./pages/AdminPanel";
+import PostDetail from "./component/body/PostDetail.jsx";
 const API_BASE = import.meta.env.VITE_API_URL;
-console.log(API_BASE);
 
 function App() {
   const [admin, setAdmin] = useState(null);
@@ -243,7 +243,7 @@ function App() {
                 <Route path="/gallery" element={<Gallery />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
-
+                <Route path="/post/:id" element={<PostDetail />} />
                 <Route
                   path="/login"
                   element={

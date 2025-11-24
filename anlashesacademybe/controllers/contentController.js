@@ -229,7 +229,7 @@ export const getPostById = async (req, res) => {
   try {
     const { postId } = req.params;
 
-    const content = await Content.findOne(
+    const content = await Post.findOne(
       {
         page: "home",
         "posts._id": postId,

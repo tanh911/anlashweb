@@ -5,11 +5,11 @@ import axios from "axios";
 import "./Home.css";
 import PostEditor from "../component/body/Context.jsx";
 import { listenToSliderImages } from "../firebase/firestore.js"; // THÊM IMPORT NÀY
-import { Link, NavLink } from "react-router-dom";
-
+import { Link, NavLink, useNavigate } from "react-router-dom";
 const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function Home({ loggedIn }) {
+  const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showPostEditor, setShowPostEditor] = useState(false);
@@ -46,7 +46,25 @@ export default function Home({ loggedIn }) {
       setLoading(false);
     }
   };
+  const handlePostClick = (postId) => {
+    navigate(`/post/${postId}`);
+  };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return "Không có ngày";
+
+    try {
+      const date = new Date(dateString);
+      // Kiểm tra xem date có hợp lệ không
+      if (isNaN(date.getTime())) {
+        return "Ngày không hợp lệ";
+      }
+      return date.toLocaleDateString("vi-VN");
+    } catch (error) {
+      console.error("Lỗi format date:", error);
+      return "Lỗi ngày";
+    }
+  };
   return (
     <div className="container">
       <h1>Nổi bật</h1>
@@ -82,37 +100,100 @@ export default function Home({ loggedIn }) {
 
         {loading ? (
           <div className="loading">Đang tải bài viết...</div>
-        ) : posts.length > 0 ? (
+        ) : posts && posts.length > 0 ? (
           <div className="posts-grid">
-            {posts.slice(0, 3).map((post) => (
-              <div key={post._id} className="post-card">
-                <div className="post-header">
-                  <h3 className="post-title">{post.title}</h3>
-                  <span className="post-date">
-                    {new Date(post.createdAt).toLocaleDateString("vi-VN")}
-                  </span>
-                </div>
-                {/* <div className="post-author">Tác giả: {post.author}</div> */}
-                <p className="post-content">
-                  {post.content.length > 150
-                    ? post.content.substring(0, 150) + "..."
-                    : post.content}
-                </p>
-                {post.tags && post.tags.length > 0 && (
-                  <div className="post-tags">
-                    {post.tags.map((tag, index) => (
-                      <span key={index} className="tag">
-                        #{tag}
-                      </span>
-                    ))}
+            {posts.slice(0, 3).map((post) => {
+              const extractFirstImage = (content) => {
+                const markdownMatch = content.match(
+                  /!\[.*?\]\((https?:\/\/[^\s)]+)\)/
+                );
+                if (markdownMatch) return markdownMatch[1];
+
+                const htmlMatch = content.match(/<img[^>]+src="([^">]+)"/);
+                if (htmlMatch) return htmlMatch[1];
+
+                const urlMatch = content.match(
+                  /\[.*?\]\((https?:\/\/[^\s)]+\.(jpg|jpeg|png|gif|webp))\)/i
+                );
+                if (urlMatch) return urlMatch[1];
+
+                return null;
+              };
+
+              const getCleanContent = (content) => {
+                if (!content) return "Nội dung trống";
+
+                let cleanContent = content
+                  .replace(/!\[.*?\]\(https?:\/\/[^\s)]+\)/g, "")
+                  .replace(/<img[^>]*>/g, "")
+                  .replace(
+                    /\[.*?\]\((https?:\/\/[^\s)]+\.(jpg|jpeg|png|gif|webp))\)/gi,
+                    ""
+                  )
+                  .trim();
+
+                if (!cleanContent) return "Bài viết có hình ảnh";
+
+                return cleanContent;
+              };
+
+              const imageUrl = extractFirstImage(post.content);
+              const cleanContent = getCleanContent(post.content);
+
+              return (
+                <div
+                  key={post._id}
+                  className="post-card"
+                  onClick={() => handlePostClick(post._id)}
+                  style={{ cursor: "pointer" }}
+                >
+                  {imageUrl && (
+                    <div className="post-image">
+                      <img
+                        src={imageUrl}
+                        alt={post.title}
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  <div className="post-header">
+                    <h3 className="post-title">
+                      {post.title || "Không có tiêu đề"}
+                    </h3>
+                    <span className="post-date">
+                      {formatDate(post.createdAt)}
+                    </span>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  <p className="post-content">
+                    {cleanContent.length > 150
+                      ? cleanContent.substring(0, 150) + "..."
+                      : cleanContent}
+                  </p>
+
+                  {post.tags && post.tags.length > 0 && (
+                    <div className="post-tags">
+                      {post.tags.map((tag, index) => (
+                        <span key={index} className="tag">
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="read-more">
+                    <span className="read-more-text">Đọc thêm →</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div className="no-posts">
-            <p>Chưa có bài viết nào. {loggedIn && "Hãy viết bài đầu tiên!"}</p>
+            <p>Chưa có bài viết nào.</p>
           </div>
         )}
       </div>
