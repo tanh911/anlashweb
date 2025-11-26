@@ -241,7 +241,7 @@ function App() {
                 />
                 <Route path="/appointment" element={<Appointment />} />
                 <Route path="/gallery" element={<Gallery />} />
-                <Route path="/about" element={<About />} />
+                <Route path="/about" element={<About loggedIn={loggedIn} />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/post/:id" element={<PostDetail />} />
                 <Route

@@ -62,7 +62,13 @@ export default function Navbar({ loggedIn, onLogout }) {
                     <Link to="/admin" className="nav-link" onClick={closeMenu}>
                       Admin Panel
                     </Link>
-                    <button onClick={onLogout} className="nav-link logout-btn">
+                    <button
+                      onClick={() => {
+                        onLogout();
+                        closeMenu();
+                      }}
+                      className="nav-link logout-btn"
+                    >
                       Đăng xuất
                     </button>
                   </>
