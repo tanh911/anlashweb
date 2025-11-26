@@ -4,6 +4,7 @@ import scheduleRoutes from "./scheduleRoutes.js";
 import authRoutes from "./authRoutes.js";
 import service from "./servicesRoutes.js";
 import contentRoutes from "./contentRoutes.js";
+import courseRoutes from "./courseRoutes.js";
 const router = express.Router();
 
 // Health check
@@ -21,4 +22,5 @@ router.use("/schedule", scheduleRoutes);
 router.use("/services", service);
 router.use("/auth", authRoutes);
 router.use("/content", contentRoutes);
+router.use("/courses", courseRoutes);
 export default router;

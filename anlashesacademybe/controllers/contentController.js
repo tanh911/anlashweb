@@ -230,20 +230,6 @@ export const getPostById = async (req, res) => {
   try {
     const { postId } = req.params;
 
-<<<<<<< HEAD
-    const content = await Post.findOne(
-      {
-        page: "home",
-        "posts._id": postId,
-      },
-      {
-        "posts.$": 1,
-      }
-    );
-=======
-    console.log('🔍 Fetching post with ID:', postId);
->>>>>>> 78faa954e5d3d60e51b2794c06979786d568a51b
-
     // Kiểm tra postId hợp lệ
     if (!postId) {
       return res.status(400).json({
@@ -255,7 +241,7 @@ export const getPostById = async (req, res) => {
     // Tìm bài viết trong model Post
     const post = await Post.findById(postId);
 
-    console.log('📄 Post found:', post);
+    console.log("📄 Post found:", post);
 
     if (!post) {
       return res.status(404).json({
@@ -268,7 +254,6 @@ export const getPostById = async (req, res) => {
       success: true,
       data: post,
     });
-
   } catch (error) {
     console.error("❌ Get post by ID error:", error);
     res.status(500).json({
