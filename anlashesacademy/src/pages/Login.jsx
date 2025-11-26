@@ -66,7 +66,7 @@ const Login = ({ setAdmin }) => {
     <div className="login-container">
       <div className="login-form-container">
         <h2 className="login-title">
-          {isRegistering ? "Đăng ký Admin" : "Đăng nhập Admin"}
+          {isRegistering ? "Đăng ký" : "Đăng nhập"}
         </h2>
 
         {error && <div className="error-message">{error}</div>}
