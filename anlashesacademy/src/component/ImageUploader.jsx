@@ -29,10 +29,10 @@ const ImageUploader = ({
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Kích thước ảnh không được vượt quá 5MB");
-      return;
-    }
+    // if (file.size > 5 * 1024 * 1024) {
+    //   setError("Kích thước ảnh không được vượt quá 5MB");
+    //   return;
+    // }
 
     setUploading(true);
     setError("");
