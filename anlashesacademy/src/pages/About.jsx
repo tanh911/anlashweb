@@ -306,9 +306,7 @@ export default function About({ loggedIn }) {
                 </div>
 
                 <div className="course-actions">
-                  <Link to={`/login`} className="enroll-button">
-                    Đăng kí khóa học
-                  </Link>
+                  <Link className="enroll-button">Đăng kí khóa học</Link>
 
                   {loggedIn && (
                     <div className="admin-controls">
