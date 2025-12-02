@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import Slider from "../component/body/Slider.jsx";
-import ImageUploader from "../component/ImageUploader";
+import ImageUploader from "../component/ListImageUploader.jsx";
 import axios from "axios";
 import "./Home.css";
 import PostEditor from "../component/body/Context.jsx";
 import { listenToSliderImages } from "../firebase/firestore.js"; // THÊM IMPORT NÀY
 import { Link, NavLink, useNavigate } from "react-router-dom";
+import SliderImageUploader from "../component/SliderImageUploader.jsx";
 const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function Home({ loggedIn }) {
@@ -71,14 +72,12 @@ export default function Home({ loggedIn }) {
       <div className="first-container">
         <Slider loggedIn={loggedIn} />
         {loggedIn && (
-          <ImageUploader
-            loggedIn={true}
+          <SliderImageUploader
+            loggedIn={loggedIn}
             existingImages={sliderImages} // QUAN TRỌNG
             onUploadSuccess={(newImage) => {
-              console.log("🆕 Ảnh mới được upload:", newImage);
-              // Có thể cập nhật state ở đây nếu cần
+              setSliderImages((prev) => [...prev, newImage]);
             }}
-            uploadType="slider"
             buttonText="Thêm ảnh vào slider"
           />
         )}

@@ -20,16 +20,26 @@ export default function Navbar({ loggedIn, onLogout }) {
                 to="/"
                 className="nav-logo"
                 onClick={closeMenu}
-                style={{ textDecoration: "none" }}
+                style={{
+                  color: "#6b7280",
+                  fontFamily: "'Kavoon', serif",
+                  letterSpacing: "0.5px",
+                  opacity: 0.9,
+                }}
               >
-                Tên website
+                Anlashes Academy
               </Link>
             </div>
 
             {/* Menu */}
             <ul className={`nav-menu ${isMenuOpen ? "active" : ""}`}>
               <li className="nav-item">
-                <Link to="/" className="nav-link" onClick={closeMenu}>
+                <Link
+                  to="/"
+                  className="nav-link"
+                  onClick={closeMenu}
+                  style={{ fontSize: "18px" }}
+                >
                   Trang Chủ
                 </Link>
               </li>
@@ -38,18 +48,29 @@ export default function Navbar({ loggedIn, onLogout }) {
                   to="/appointment"
                   className="nav-link"
                   onClick={closeMenu}
+                  style={{ fontSize: "18px" }}
                 >
-                  Đặt lịch
+                  Đặt Lịch
                 </Link>
               </li>
               <li className="nav-item">
-                <Link to="/gallery" className="nav-link" onClick={closeMenu}>
-                  Mẫu ảnh
+                <Link
+                  to="/gallery"
+                  className="nav-link"
+                  onClick={closeMenu}
+                  style={{ fontSize: "18px" }}
+                >
+                  Dịch Vụ
                 </Link>
               </li>
               <li className="nav-item">
-                <Link to="/about" className="nav-link" onClick={closeMenu}>
-                  Các khóa học
+                <Link
+                  to="/about"
+                  className="nav-link"
+                  onClick={closeMenu}
+                  style={{ fontSize: "18px" }}
+                >
+                  Các Khóa Học
                 </Link>
               </li>
               <li className="nav-item mobile-auth">
