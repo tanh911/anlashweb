@@ -233,7 +233,7 @@ const Gallery = ({ loggedIn }) => {
         <div className="header-left">
           <div className="gallery-logo">
             <span className="logo-icon">📷</span>
-            <span className="logo-text">Gallery Manager</span>
+            <span className="logo-text">Bộ Sưu Tập</span>
           </div>
         </div>
       </div>
@@ -345,7 +345,7 @@ const Gallery = ({ loggedIn }) => {
               )}
             </div>
 
-            {currentFolder && currentFolderData && (
+            {loggedIn && currentFolder && currentFolderData && (
               <div className="folder-meta">
                 <div className="meta-item">
                   <span className="meta-label">Số lượng ảnh</span>
@@ -388,7 +388,7 @@ const Gallery = ({ loggedIn }) => {
           <div className="images-preview">
             <div className="preview-header">
               <h3 className="preview-title">
-                🖼️ Ảnh trong thư mục
+                🖼️ Ảnh
                 {currentFolder && <span>({images.length} ảnh)</span>}
               </h3>
 
@@ -405,14 +405,16 @@ const Gallery = ({ loggedIn }) => {
                       🗑️ Xóa đã chọn ({selectedImages.length})
                     </button>
                   )}
-                  <button
-                    className="btn secondary"
-                    onClick={handleSelectAllImages}
-                  >
-                    {selectedImages.length === images.length
-                      ? "Bỏ chọn tất cả"
-                      : "Chọn tất cả"}
-                  </button>
+                  {loggedIn && (
+                    <button
+                      className="btn secondary"
+                      onClick={handleSelectAllImages}
+                    >
+                      {selectedImages.length === images.length
+                        ? "Bỏ chọn tất cả"
+                        : "Chọn tất cả"}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

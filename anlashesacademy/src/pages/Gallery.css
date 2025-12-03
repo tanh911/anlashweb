@@ -7,6 +7,7 @@
   min-height: 100vh;
   background: #fafafa;
   font-family: "Google Sans", "Roboto", "Segoe UI", sans-serif;
+  width: 100%;
 }
 
 /* Header */
@@ -249,7 +250,6 @@
   max-width: 60%;
 }
 
-/* Images Preview Section */
 .images-preview {
   flex: 1;
   background: white;
@@ -260,6 +260,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 400px; /* Thêm chiều cao tối thiểu */
+  max-height: calc(100vh - 400px); /* Giới hạn chiều cao tối đa */
 }
 
 .preview-header {
@@ -286,14 +288,15 @@
   gap: 12px;
 }
 
-/* Images Grid với preview ảnh */
 .images-grid {
   flex: 1;
-  overflow-y: hidden;
+  overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 20px;
   padding: 8px;
+  /* Xóa height: 200px; */
+  min-height: 0; /* Quan trọng: cho phép flex item co lại */
 }
 
 /* Image Card với preview ảnh */
@@ -539,13 +542,8 @@
 
 /* Responsive */
 @media (max-width: 1200px) {
-  .gallery-layout {
-    grid-template-columns: 250px 1fr;
-    gap: 24px;
-  }
-
   .images-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
 }
 
