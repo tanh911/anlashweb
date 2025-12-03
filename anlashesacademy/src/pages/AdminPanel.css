@@ -202,7 +202,7 @@
 
 .calendar-day.selected {
   background: #007bff;
-  color: white;
+  color: black;
 }
 
 .calendar-day.has-schedule {

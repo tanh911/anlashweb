@@ -230,6 +230,15 @@ export const getPostById = async (req, res) => {
   try {
     const { postId } = req.params;
 
+    const content = await Post.findOne(
+      {
+        page: "home",
+        "posts._id": postId,
+      },
+      {
+        "posts.$": 1,
+      }
+    );
     // Kiểm tra postId hợp lệ
     if (!postId) {
       return res.status(400).json({

@@ -1,0 +1,65 @@
+/* Thêm vào SliderImageUploader.css */
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cleanup-btn {
+  background-color: #ffc107;
+  color: #333;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.3s;
+}
+
+.cleanup-btn:hover {
+  background-color: #e0a800;
+}
+
+.warning-count {
+  color: #ffc107;
+  font-size: 14px;
+  margin-left: 10px;
+  font-weight: normal;
+}
+
+.null-images-warning {
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+  padding: 10px;
+  margin-top: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.image-item {
+  padding-bottom: 3px;
+}
+.warning-count {
+  display: none;
+}
+.null-images-warning p {
+  margin: 0;
+  color: #856404;
+  display: none;
+}
+
+.cleanup-small-btn {
+  background-color: #ffc107;
+  color: #333;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.cleanup-small-btn:hover {
+  background-color: #e0a800;
+}

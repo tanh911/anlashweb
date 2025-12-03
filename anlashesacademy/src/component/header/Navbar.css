@@ -122,7 +122,11 @@
   display: block;
   position: relative;
   overflow: hidden;
+<<<<<<< HEAD
   font-size: 0.95rem;
+=======
+  font-size: 5rem;
+>>>>>>> feature1
   letter-spacing: 0.2px;
 }
 
