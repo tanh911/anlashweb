@@ -335,17 +335,10 @@ export const deletePost = async (req, res) => {
   try {
     const { postId } = req.params;
 
-    const updatedContent = await Content.findOneAndUpdate(
-      { page: "home" },
-      {
-        $pull: {
-          posts: { _id: postId },
-        },
-      },
-      {
-        new: true,
-      }
-    );
+    // Tìm và xóa post từ Content document
+    const updatedContent = await Post.findByIdAndDelete(postId);
+
+    console.log("📊 Updated content:", updatedContent);
 
     if (!updatedContent) {
       return res.status(404).json({
@@ -357,6 +350,7 @@ export const deletePost = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Bài viết đã được xóa thành công",
+      data: updatedContent,
     });
   } catch (error) {
     console.error("Delete post error:", error);
