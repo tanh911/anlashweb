@@ -320,7 +320,7 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 936px) {
   .slider-container {
     height: 300px;
   }

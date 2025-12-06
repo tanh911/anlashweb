@@ -1,4 +1,23 @@
-/* Home.css - Thêm các styles cho blog posts */
+/* Home.css - Styles cho trang chủ */
+
+/* Container chính */
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  min-height: 100vh;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.container h1 {
+  text-align: center;
+  color: #333;
+  margin-bottom: 2rem;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
 
 /* Blog Posts Section */
 .posts-container {
@@ -10,14 +29,23 @@
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
-.posts-container h2 {
-  text-align: center;
-  color: #333;
+.posts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.posts-header h2 {
+  color: #333;
+  margin: 0;
   font-size: 2rem;
   font-weight: 600;
 }
 
+/* Grid bài viết */
 .posts-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -25,6 +53,7 @@
   margin-top: 1rem;
 }
 
+/* Card bài viết */
 .post-card {
   background: white;
   border-radius: 12px;
@@ -32,6 +61,8 @@
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   border: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
 }
 
 .post-card:hover {
@@ -73,8 +104,30 @@
   line-height: 1.6;
   margin-bottom: 1rem;
   font-size: 0.95rem;
+  flex: 1;
 }
 
+/* Hình ảnh bài viết */
+.post-image {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.post-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.post-card:hover .post-image img {
+  transform: scale(1.05);
+}
+
+/* Tags */
 .post-tags {
   display: flex;
   flex-wrap: wrap;
@@ -91,81 +144,7 @@
   font-weight: 500;
 }
 
-.loading {
-  text-align: center;
-  padding: 2rem;
-  color: #667eea;
-  font-size: 1.1rem;
-}
-
-.no-posts {
-  text-align: center;
-  padding: 2rem;
-  color: #6c757d;
-  font-style: italic;
-}
-
-/* Responsive cho blog posts */
-@media (max-width: 768px) {
-  .posts-container {
-    padding: 1.5rem;
-    margin: 2rem 0;
-  }
-
-  .posts-grid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-
-  .post-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .post-title {
-    margin-right: 0;
-    margin-bottom: 0.5rem;
-  }
-
-  .posts-container h2 {
-    font-size: 1.7rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .posts-container {
-    padding: 1rem;
-  }
-
-  .post-card {
-    padding: 1.2rem;
-  }
-
-  .posts-container h2 {
-    font-size: 1.5rem;
-  }
-}
-
-/* Giữ nguyên các styles cũ... */
-.container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  min-height: 100vh;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.container h1 {
-  text-align: center;
-  color: #333;
-  margin-bottom: 2rem;
-  font-size: 2.5rem;
-  font-weight: 700;
-}
-
+/* Container sections */
 .first-container {
   width: 100%;
   display: flex;
@@ -186,10 +165,44 @@
   margin: 3rem 0;
   position: relative;
   overflow: hidden;
+  opacity: 0;
+  transform: translateY(30px);
+  animation: fadeInUp 0.8s ease forwards;
 }
 
-/* Hiệu ứng nền động */
+.third-container {
+  padding: 2px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  text-align: center;
+  border-radius: 10px;
+  margin: 1.5rem auto;
+  max-width: 1000px;
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 250px;
+}
 
+.third-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  z-index: 1;
+}
+
+.third-container > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Features Grid */
 .features-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -211,11 +224,17 @@
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: slideInUp 0.6s ease forwards;
 }
 
-/* Hiệu ứng hover cho feature item */
+.feature-item:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+}
 
-/* Icon styles */
 .feature-icon {
   font-size: 3.5rem;
   margin-bottom: 1.5rem;
@@ -228,7 +247,6 @@
   transform: scale(1.1) rotate(5deg);
 }
 
-/* Text styles */
 .feature-item h3 {
   font-size: 1.5rem;
   margin-bottom: 1rem;
@@ -246,154 +264,7 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-/* Responsive Design */
-@media (max-width: 1024px) {
-  .second-container {
-    padding: 3rem 1.5rem;
-    margin: 2rem 0;
-  }
-
-  .features-grid {
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-  }
-
-  .feature-item {
-    padding: 2rem 1.5rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .second-container {
-    padding: 2.5rem 1rem;
-    border-radius: 16px;
-    margin: 1.5rem 0;
-  }
-
-  .features-grid {
-    grid-template-columns: 1fr;
-    gap: 1.2rem;
-    max-width: 400px;
-  }
-
-  .feature-item {
-    padding: 2rem 1rem;
-  }
-
-  .feature-icon {
-    font-size: 3rem;
-    margin-bottom: 1.2rem;
-  }
-
-  .feature-item h3 {
-    font-size: 1.3rem;
-  }
-
-  .feature-item p {
-    font-size: 0.95rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .second-container {
-    padding: 2rem 0.8rem;
-  }
-
-  .feature-item {
-    padding: 1.8rem 1rem;
-  }
-
-  .feature-icon {
-    font-size: 2.8rem;
-  }
-
-  .feature-item h3 {
-    font-size: 1.2rem;
-  }
-}
-
-/* Hiệu ứng loading khi scroll vào view */
-.second-container {
-  opacity: 0;
-  transform: translateY(30px);
-  animation: fadeInUp 0.8s ease forwards;
-}
-
-@keyframes fadeInUp {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Stagger animation cho các feature items */
-.feature-item:nth-child(1) {
-  animation-delay: 0.1s;
-}
-.feature-item:nth-child(2) {
-  animation-delay: 0.2s;
-}
-.feature-item:nth-child(3) {
-  animation-delay: 0.3s;
-}
-
-.feature-item {
-  opacity: 0;
-  transform: translateY(20px);
-  animation: slideInUp 0.6s ease forwards;
-}
-
-@keyframes slideInUp {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.third-container {
-  padding: 2.5rem 1.5rem; /* Giảm padding */
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  text-align: center;
-  border-radius: 10px;
-  margin: 1.5rem auto; /* Giảm margin */
-  max-width: 1000px; /* Giảm max-width */
-  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3); /* Giảm shadow */
-  position: relative;
-  overflow: hidden;
-  width: 100%;
-  height: 250px;
-}
-.post-image {
-  width: 100%;
-  height: 200px;
-  overflow: hidden;
-  border-radius: 8px;
-  margin-bottom: 12px;
-}
-
-.post-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.third-container::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  z-index: 1;
-}
-
-.third-container > * {
-  position: relative;
-  z-index: 2;
-}
-
+/* CTA Section */
 .cta-title {
   font-size: 2.5rem;
   margin-bottom: 1rem;
@@ -408,6 +279,109 @@
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.stat {
+  text-align: center;
+}
+/* Home.css */
+.undo-notification {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 8px;
+  padding: 15px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.3s ease-out;
+  min-width: 300px;
+  max-width: 500px;
+}
+
+.undo-btn {
+  background: #28a745; /* Màu xanh để phân biệt với nút đóng */
+  color: white;
+  border: none;
+  padding: 5px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-left: auto; /* Đẩy nút về phía bên phải */
+  flex-shrink: 0; /* Ngăn nút bị co lại */
+}
+
+.undo-btn:hover {
+  background: #c82333;
+}
+
+.undo-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #999;
+}
+
+.undo-close-btn:hover {
+  color: #333;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(45deg, #fff, #e0e0e0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.stat-label {
+  font-size: 1rem;
+  opacity: 0.9;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Buttons */
+.create-post-btn {
+  background: linear-gradient(45deg, #28a745, #20c997);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.create-post-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
 }
 
 .cta-button {
@@ -428,119 +402,7 @@
   box-shadow: 0 8px 25px rgba(255, 107, 107, 0.6);
 }
 
-.stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 2rem;
-  margin-top: 2rem;
-}
-
-.stat {
-  text-align: center;
-}
-
-.stat-number {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  background: linear-gradient(45deg, #fff, #e0e0e0);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.stat-label {
-  font-size: 1rem;
-  opacity: 0.9;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .container {
-    padding: 10px;
-  }
-
-  .container h1 {
-    font-size: 2rem;
-  }
-
-  .features-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .stats {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-  }
-
-  .cta-title {
-    font-size: 2rem;
-  }
-
-  .third-container {
-    padding: 2rem 1rem;
-  }
-
-  .feature-item {
-    padding: 1.5rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .container h1 {
-    font-size: 1.8rem;
-  }
-
-  .stats {
-    grid-template-columns: 1fr;
-  }
-
-  .cta-title {
-    font-size: 1.8rem;
-  }
-
-  .cta-description {
-    font-size: 1rem;
-  }
-
-  .cta-button {
-    padding: 12px 30px;
-    font-size: 1rem;
-  }
-}
-/* Thêm vào Home.css */
-
-/* Posts Header */
-.posts-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.create-post-btn {
-  background: linear-gradient(45deg, #28a745, #20c997);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-}
-
-.create-post-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
-}
-
-/* Post Editor Styles */
+/* Post Editor */
 .post-editor-overlay {
   position: fixed;
   top: 0;
@@ -606,15 +468,158 @@
   height: 18px;
 }
 
-/* Responsive cho post editor */
-@media (max-width: 768px) {
+/* States */
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: #667eea;
+  font-size: 1.1rem;
+}
+
+.no-posts {
+  text-align: center;
+  padding: 2rem;
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Stagger animations cho features */
+.feature-item:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.feature-item:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.feature-item:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* ========== RESPONSIVE DESIGN ========== */
+
+/* Tablet: 768px - 1024px */
+@media (max-width: 1024px) {
+  .container h1 {
+    font-size: 2.2rem;
+  }
+
+  .second-container {
+    padding: 3rem 1.5rem;
+    margin: 2rem 0;
+  }
+
+  .features-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .feature-item {
+    padding: 2rem 1.5rem;
+  }
+
+  .posts-grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+}
+
+/* Mobile: 480px - 768px */
+@media (max-width: 936px) {
+  .container {
+    padding: 10px;
+  }
+
+  .container h1 {
+    font-size: 2rem;
+  }
+
+  .posts-container {
+    padding: 1.5rem;
+    margin: 2rem 0;
+  }
+
   .posts-header {
     flex-direction: column;
     align-items: flex-start;
   }
 
+  .posts-header h2 {
+    font-size: 1.7rem;
+  }
+
   .create-post-btn {
     align-self: flex-end;
+  }
+
+  .posts-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .post-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .post-title {
+    margin-right: 0;
+    margin-bottom: 0.5rem;
+  }
+
+  .second-container {
+    padding: 2.5rem 1rem;
+    border-radius: 16px;
+    margin: 1.5rem 0;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+    max-width: 400px;
+  }
+
+  .feature-item {
+    padding: 2rem 1rem;
+  }
+
+  .feature-icon {
+    font-size: 3rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .feature-item h3 {
+    font-size: 1.3rem;
+  }
+
+  .feature-item p {
+    font-size: 0.95rem;
+  }
+
+  .third-container {
+    height: auto;
+    padding: 2rem 1rem;
+  }
+
+  .cta-title {
+    font-size: 2rem;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
   }
 
   .post-editor {
@@ -623,14 +628,67 @@
   }
 }
 
+/* Small Mobile: dưới 480px */
 @media (max-width: 480px) {
+  .container h1 {
+    font-size: 1.8rem;
+  }
+
+  .posts-container {
+    padding: 1rem;
+  }
+
+  .posts-header h2 {
+    font-size: 1.5rem;
+  }
+
   .create-post-btn {
     padding: 8px 16px;
     font-size: 13px;
   }
 
+  .post-card {
+    padding: 1.2rem;
+  }
+
+  .second-container {
+    padding: 2rem 0.8rem;
+  }
+
+  .feature-item {
+    padding: 1.8rem 1rem;
+  }
+
+  .feature-icon {
+    font-size: 2.8rem;
+  }
+
+  .feature-item h3 {
+    font-size: 1.2rem;
+  }
+
+  .stats {
+    grid-template-columns: 1fr;
+  }
+
+  .cta-title {
+    font-size: 1.8rem;
+  }
+
+  .cta-description {
+    font-size: 1rem;
+  }
+
+  .cta-button {
+    padding: 12px 30px;
+    font-size: 1rem;
+  }
+
   .post-editor-form {
     padding: 15px;
-    z-index: 9999;
+  }
+
+  .post-content-input {
+    min-height: 150px;
   }
 }

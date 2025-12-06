@@ -367,12 +367,6 @@ const AdminPanel = () => {
         >
           📋 Lịch hẹn
         </button>
-        <button
-          className={`tab-btn ${activeTab === "content" ? "active" : ""}`}
-          onClick={() => setActiveTab("content")}
-        >
-          🖼 Quản lý nội dung
-        </button>
       </div>
 
       <div className="admin-content">

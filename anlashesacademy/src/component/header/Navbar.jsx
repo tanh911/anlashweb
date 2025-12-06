@@ -63,7 +63,38 @@ export default function Navbar({ loggedIn, onLogout }) {
                   Dịch Vụ
                 </Link>
               </li>
-              <li className="nav-item"></li>
+              <li className="nav-item">
+                <Link
+                  to="/about"
+                  className="nav-link"
+                  onClick={closeMenu}
+                  style={{ fontSize: "18px" }}
+                >
+                  Khóa Học
+                </Link>
+              </li>
+              <li className="nav-item mobile-auth">
+                {!loggedIn ? (
+                  <Link to="/login" className="nav-link" onClick={closeMenu}>
+                    Đăng nhập
+                  </Link>
+                ) : (
+                  <>
+                    <Link to="/admin" className="nav-link" onClick={closeMenu}>
+                      Admin Panel
+                    </Link>
+                    <button
+                      onClick={() => {
+                        onLogout();
+                        closeMenu();
+                      }}
+                      className="nav-link logout-btn"
+                    >
+                      Đăng xuất
+                    </button>
+                  </>
+                )}
+              </li>
             </ul>
           </div>
 

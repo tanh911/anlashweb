@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { uploadToCloudinary } from "../utils/cloudinaryUpload";
 import { saveImageToFolder } from "../firebase/firestore";
 import "./FolderImageUploader.css";
@@ -8,81 +8,167 @@ const FolderImageUploader = ({
   onUploadSuccess,
   folderId,
   buttonText = "Upload ảnh",
-  variant = "default", // default, small, large, outline, success, warning
+  variant = "default",
   showFileName = true,
 }) => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [fileName, setFileName] = useState("");
 
+  const fileInputRef = useRef(null);
+  const isUploadingRef = useRef(false);
+  const hasUploadedRef = useRef(false); // Track nếu đã upload thành công
+  const uploadIdRef = useRef(null); // Unique ID cho mỗi lần upload
+
+  useEffect(() => {
+    return () => {
+      isUploadingRef.current = false;
+      hasUploadedRef.current = false;
+    };
+  }, []);
+
+  const handleFileUpload = useCallback(
+    async (file) => {
+      // Tạo unique ID cho lần upload này
+      const uploadId =
+        Date.now() + "-" + Math.random().toString(36).substr(2, 9);
+      uploadIdRef.current = uploadId;
+
+      console.log(`[${uploadId}] Bắt đầu upload`);
+
+      // Kiểm tra đang upload
+      if (isUploadingRef.current) {
+        console.log(`[${uploadId}] Đang upload, bỏ qua`);
+        return;
+      }
+
+      if (!file) return;
+
+      // Validation
+      if (!file.type.startsWith("image/")) {
+        setError("Vui lòng chọn file ảnh (JPEG, PNG, GIF)");
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        setError("File ảnh quá lớn. Vui lòng chọn ảnh dưới 5MB");
+        return;
+      }
+
+      isUploadingRef.current = true;
+      hasUploadedRef.current = false;
+
+      // Reset input ngay lập tức
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      setUploading(true);
+      setError("");
+      setFileName(file.name);
+
+      try {
+        console.log(`[${uploadId}] Uploading to Cloudinary...`);
+
+        // Upload lên Cloudinary
+        const downloadURL = await uploadToCloudinary(file);
+        console.log(`[${uploadId}] Cloudinary thành công:`, downloadURL);
+
+        // Lưu vào Firebase với folderId
+        console.log(`[${uploadId}] Saving to Firebase...`);
+        await saveImageToFolder(folderId, downloadURL);
+        console.log(`[${uploadId}] Firebase thành công`);
+
+        // Chỉ gọi onUploadSuccess nếu vẫn là cùng uploadId
+        if (
+          uploadIdRef.current === uploadId &&
+          onUploadSuccess &&
+          !hasUploadedRef.current
+        ) {
+          hasUploadedRef.current = true;
+          console.log(`[${uploadId}] Gọi onUploadSuccess`);
+          onUploadSuccess(downloadURL, folderId);
+        } else {
+          console.log(
+            `[${uploadId}] Bỏ qua onUploadSuccess (đã gọi hoặc uploadId khác)`
+          );
+        }
+
+        // Alert với delay
+        setTimeout(() => {
+          if (uploadIdRef.current === uploadId) {
+            alert("✅ Upload ảnh thành công!");
+          }
+        }, 100);
+      } catch (error) {
+        console.error(`[${uploadId}] Lỗi khi upload ảnh:`, error);
+        setError("Lỗi khi upload ảnh. Vui lòng thử lại.");
+      } finally {
+        // Chỉ reset nếu vẫn là cùng uploadId
+        if (uploadIdRef.current === uploadId) {
+          setUploading(false);
+          setFileName("");
+          isUploadingRef.current = false;
+
+          // Reset input sau khi upload xong
+          setTimeout(() => {
+            if (fileInputRef.current) {
+              fileInputRef.current.value = "";
+            }
+          }, 300);
+        }
+        console.log(`[${uploadId}] Kết thúc upload process`);
+      }
+    },
+    [folderId, onUploadSuccess]
+  );
+
+  const handleFileInputChange = useCallback(
+    (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        handleFileUpload(file);
+      }
+      // Không reset ở đây nữa, reset trong handleFileUpload
+    },
+    [handleFileUpload]
+  );
+
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.currentTarget.classList.add("drag-over");
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove("drag-over");
+  }, []);
+
+  const handleDrop = useCallback(
+    (e) => {
+      e.preventDefault();
+      e.currentTarget.classList.remove("drag-over");
+
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        handleFileUpload(file);
+      }
+    },
+    [handleFileUpload]
+  );
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError("");
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   if (!loggedIn || !folderId) {
     return null;
   }
-
-  const handleFileUpload = async (file) => {
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      setError("Vui lòng chọn file ảnh (JPEG, PNG, GIF)");
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setError("File ảnh quá lớn. Vui lòng chọn ảnh dưới 5MB");
-      return;
-    }
-
-    setUploading(true);
-    setError("");
-    setFileName(file.name);
-
-    try {
-      // Upload lên Cloudinary
-      const downloadURL = await uploadToCloudinary(file);
-
-      // Lưu vào Firebase với folderId
-      await saveImageToFolder(folderId, downloadURL);
-
-      if (onUploadSuccess) {
-        onUploadSuccess(downloadURL, folderId);
-      }
-
-      alert("✅ Upload ảnh thành công!");
-      setFileName(""); // Reset tên file sau khi upload thành công
-    } catch (error) {
-      console.error("❌ Lỗi khi upload ảnh:", error);
-      setError("Lỗi khi upload ảnh. Vui lòng thử lại.");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleFileInputChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      handleFileUpload(file);
-    }
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.currentTarget.classList.add("drag-over");
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    e.currentTarget.classList.remove("drag-over");
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.currentTarget.classList.remove("drag-over");
-
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      handleFileUpload(file);
-    }
-  };
 
   return (
     <div className="folder-uploader">
@@ -93,11 +179,13 @@ const FolderImageUploader = ({
         onDrop={handleDrop}
       >
         <input
+          ref={fileInputRef}
           type="file"
           accept="image/*"
           onChange={handleFileInputChange}
           disabled={uploading}
           className="file-input"
+          key={`file-input-${Date.now()}`} // Force re-mount
         />
 
         {uploading ? (
@@ -127,4 +215,4 @@ const FolderImageUploader = ({
   );
 };
 
-export default FolderImageUploader;
+export default React.memo(FolderImageUploader);

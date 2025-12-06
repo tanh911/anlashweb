@@ -3,9 +3,10 @@ import Slider from "../component/body/Slider.jsx";
 import axios from "axios";
 import "./Home.css";
 import PostEditor from "../component/body/Context.jsx";
-import { listenToSliderImages } from "../firebase/firestore.js"; // THÊM IMPORT NÀY
+import { listenToSliderImages } from "../firebase/firestore.js";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import SliderImageUploader from "../component/SliderImageUploader.jsx";
+
 const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function Home({ loggedIn }) {
@@ -14,6 +15,12 @@ export default function Home({ loggedIn }) {
   const [loading, setLoading] = useState(true);
   const [showPostEditor, setShowPostEditor] = useState(false);
   const [sliderImages, setSliderImages] = useState([]);
+
+  // Thêm state cho undo feature
+  const [deletedPost, setDeletedPost] = useState(null);
+  const [showUndo, setShowUndo] = useState(false);
+  const [undoTimeout, setUndoTimeout] = useState(null);
+
   useEffect(() => {
     const unsubscribe = listenToSliderImages((images) => {
       setSliderImages(images || []);
@@ -21,6 +28,16 @@ export default function Home({ loggedIn }) {
     fetchPosts();
     return unsubscribe;
   }, []);
+
+  // Clear timeout khi component unmount
+  useEffect(() => {
+    return () => {
+      if (undoTimeout) {
+        clearTimeout(undoTimeout);
+      }
+    };
+  }, [undoTimeout]);
+
   const fetchPosts = async () => {
     try {
       console.log(
@@ -30,7 +47,6 @@ export default function Home({ loggedIn }) {
 
       const response = await axios.get(`${API_BASE}/content/posts/published`);
 
-      // Kiểm tra cấu trúc response
       if (response.data && response.data.success) {
         setPosts(response.data.data || []);
         console.log(`✅ Loaded ${response.data.data?.length || 0} posts`);
@@ -46,6 +62,7 @@ export default function Home({ loggedIn }) {
       setLoading(false);
     }
   };
+
   const handlePostClick = (postId) => {
     navigate(`/post/${postId}`);
   };
@@ -55,7 +72,6 @@ export default function Home({ loggedIn }) {
 
     try {
       const date = new Date(dateString);
-      // Kiểm tra xem date có hợp lệ không
       if (isNaN(date.getTime())) {
         return "Ngày không hợp lệ";
       }
@@ -65,15 +81,147 @@ export default function Home({ loggedIn }) {
       return "Lỗi ngày";
     }
   };
+
+  const deletePost = async (postId, e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+
+    // 1. Lưu snapshot của post trước khi xóa
+    const postToDelete = posts.find((p) => p._id === postId);
+
+    if (!postToDelete) {
+      console.log("❌ Không tìm thấy post để xóa");
+      return;
+    }
+
+    const snapshot = JSON.parse(JSON.stringify(postToDelete)); // Deep copy
+
+    console.log("📸 Snapshot saved:", snapshot.title);
+
+    if (!window.confirm("Bạn có chắc muốn xóa bài viết này?")) {
+      return;
+    }
+
+    try {
+      // 2. Optimistic update - xóa ngay trên UI
+      setPosts((prev) => prev.filter((p) => p._id !== postId));
+
+      // 3. Gọi API
+      const token = localStorage.getItem("token");
+      await axios.delete(`${API_BASE}/content/posts/${postId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log("✅ Xóa thành công trên server");
+
+      // 4. Hiện nút undo
+      setDeletedPost({
+        ...snapshot,
+        _id: postId, // Đảm bảo có ID để undo
+      });
+      setShowUndo(true); // CHỈ ĐẶT Ở ĐÂY
+
+      // 5. Tự động ẩn nút undo sau 10 giây
+      const timeout = setTimeout(() => {
+        setShowUndo(false);
+        setDeletedPost(null);
+        console.log("⏰ Đã hết thời gian undo");
+      }, 30000);
+
+      setUndoTimeout(timeout);
+    } catch (error) {
+      // 6. Rollback nếu có lỗi
+      console.error("❌ Lỗi, rolling back...", error);
+      setPosts((prev) => [...prev, snapshot]);
+      alert(
+        "Không thể xóa: " + (error.response?.data?.message || error.message)
+      );
+
+      // Clear undo state nếu có
+      setShowUndo(false);
+      setDeletedPost(null);
+      if (undoTimeout) {
+        clearTimeout(undoTimeout);
+      }
+    }
+  };
+
+  // Undo function
+  const undoDelete = async () => {
+    if (!deletedPost) return;
+
+    try {
+      // Clear timeout trước
+      if (undoTimeout) {
+        clearTimeout(undoTimeout);
+        setUndoTimeout(null);
+      }
+
+      // Khôi phục post trên UI
+      setPosts((prev) => [...prev, deletedPost]);
+      setShowUndo(false);
+
+      // Nếu muốn khôi phục trên server
+      const token = localStorage.getItem("token");
+      await axios.post(`${API_BASE}/content/posts`, deletedPost, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log("✅ Đã khôi phục trên server");
+      alert("✅ Đã khôi phục bài viết: ");
+    } catch (error) {
+      console.error("Lỗi khi undo:", error);
+      alert("Lỗi khi khôi phục: " + error.message);
+    } finally {
+      setDeletedPost(null);
+    }
+  };
+
+  // Hàm để tránh event bubbling
+  const handleDeleteClick = (e, postId) => {
+    e.stopPropagation();
+    e.preventDefault();
+    deletePost(postId, e);
+  };
+
+  // Hàm đóng thông báo undo
+  const handleCloseUndoNotification = () => {
+    setShowUndo(false);
+    setDeletedPost(null);
+    if (undoTimeout) {
+      clearTimeout(undoTimeout);
+      setUndoTimeout(null);
+    }
+  };
+
   return (
     <div className="container">
       <h1>Nổi bật</h1>
+
+      {/* Undo Notification */}
+      {showUndo && deletedPost && (
+        <div className="undo-notification">
+          <span>Đã xóa</span>
+          <button onClick={undoDelete} className="undo-btn">
+            Hoàn tác
+          </button>
+          <button
+            onClick={handleCloseUndoNotification}
+            className="undo-close-btn"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <div className="first-container">
         <Slider loggedIn={loggedIn} />
         {loggedIn && (
           <SliderImageUploader
             loggedIn={loggedIn}
-            existingImages={sliderImages} // QUAN TRỌNG
+            existingImages={sliderImages}
             onUploadSuccess={(newImage) => {
               setSliderImages((prev) => [...prev, newImage]);
             }}
@@ -145,6 +293,21 @@ export default function Home({ loggedIn }) {
                   onClick={() => handlePostClick(post._id)}
                   style={{ cursor: "pointer" }}
                 >
+                  {loggedIn && (
+                    <div
+                      className="post-actions"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        onClick={(e) => handleDeleteClick(e, post._id)}
+                        className="delete-btn"
+                        title="Xóa bài viết"
+                      >
+                        🗑️ Xóa
+                      </button>
+                    </div>
+                  )}
+
                   {imageUrl && (
                     <div className="post-image">
                       <img
@@ -158,9 +321,12 @@ export default function Home({ loggedIn }) {
                   )}
 
                   <div className="post-header">
-                    <h3 className="post-title">
-                      {post.title || "Không có tiêu đề"}
-                    </h3>
+                    {post.title && post.title.length > 150 && (
+                      <h3 className="post-title">
+                        {post.title.substring(0, 100) + "..."}
+                      </h3>
+                    )}
+
                     <span className="post-date">
                       {formatDate(post.createdAt)}
                     </span>

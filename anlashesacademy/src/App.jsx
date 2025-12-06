@@ -8,7 +8,6 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { listenToSliderImages, saveSliderImages } from "./firebase/firestore";
 import "./App.css";
-import ImageUploader from "./component/ImageUploader";
 import Navbar from "./component/header/Navbar";
 import Home from "./pages/Home";
 import Appointment from "./pages/Appointment";
@@ -18,6 +17,7 @@ import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import AdminPanel from "./pages/AdminPanel";
 import PostDetail from "./component/body/PostDetail.jsx";
+import { DebugSlider } from "./component/DebugSlider.jsx";
 const API_BASE = import.meta.env.VITE_API_URL;
 
 function App() {
@@ -100,7 +100,6 @@ function App() {
 
   return (
     <Router>
-      {/* THÊM APP WRAPPER BAO BỌC TOÀN BỘ */}
       <div className="app-wrapper">
         <Navbar loggedIn={loggedIn} onLogout={handleLogout} />
 
@@ -136,11 +135,8 @@ function App() {
           </div>
         )}
 
-        {/* CONTENT WRAPPER - CHIẾM KHÔNG GIAN CÒN LẠI */}
         <div className="content-wrapper">
-          {/* --- Layout 3 cột bao quanh Routes --- */}
           <div className="layout">
-            {/* Nội dung chính */}
             <main className="main-content">
               <Routes>
                 <Route
@@ -161,30 +157,34 @@ function App() {
                 <Route path="/about" element={<About loggedIn={loggedIn} />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/post/:id" element={<PostDetail />} />
+                {/* SỬA 2 ROUTE NÀY: */}
                 <Route
                   path="/login"
                   element={
                     loggedIn ? (
-                      <Navigate to="/admin" />
+                      <Navigate to="/admin" replace />
                     ) : (
                       <Login setAdmin={setAdmin} />
                     )
                   }
                 />
+                <Route
+                  path="/admin"
+                  element={
+                    loggedIn ? <AdminPanel /> : <Navigate to="/login" replace />
+                  }
+                />
+                {/* Có thể thêm route catch-all */}
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </main>
           </div>
         </div>
-
+        {/* <DebugSlider /> */}
         <footer className="footer">
           <div>© {new Date().getFullYear()} MyAdmin</div>
           <div>Privacy Policy</div>
         </footer>
-
-        {/* <footer className="footer">
-          <div>© {new Date().getFullYear()} MyAdmin</div>
-          <div>Privacy Policy</div>
-        </footer> */}
       </div>
     </Router>
   );

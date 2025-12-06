@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   listenToSliderImages,
   saveSliderImages,
@@ -11,116 +11,145 @@ export default function Slider({ loggedIn }) {
   const [isPaused, setIsPaused] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [modalImage, setModalImage] = useState("");
+
   const timeoutRef = useRef(null);
-  useEffect(() => {
-    const unsubscribe = listenToSliderImages((images) => {
-      if (images && Array.isArray(images)) {
-        const mapped = images.map((url, idx) => ({
-          id: idx + 1,
-          image: url,
-        }));
-        setSlides(mapped);
-        setCurrentIndex(0);
-      } else {
-        console.log("❌ Images không tồn tại hoặc không phải array");
-      }
-    });
+  const listenerRef = useRef(null);
+  const isMountedRef = useRef(true);
 
-    return unsubscribe;
-  }, []);
-
-  // Lấy dữ liệu realtime - FIX: Thêm error handling
+  // 🎯 SIMPLE LISTENER với Global Listener Pattern
   useEffect(() => {
-    try {
-      const unsubscribe = listenToSliderImages((images) => {
+    isMountedRef.current = true;
+
+    console.log("🎬 Slider component mounting...");
+    if (listenerRef.current) {
+      listenerRef.current();
+    }
+
+    // Setup listener đơn giản
+    const unsubscribe = listenToSliderImages(
+      (images) => {
+        if (!isMountedRef.current) return;
+
+        console.log("📥 Slider nhận images:", images?.length || 0);
+
         if (images && Array.isArray(images)) {
           const mapped = images.map((url, idx) => ({
             id: idx + 1,
             image: url,
           }));
+
           setSlides(mapped);
-          // Reset currentIndex khi slides thay đổi
-          setCurrentIndex(0);
+        } else {
+          setSlides([]);
         }
-      });
-      return unsubscribe;
-    } catch (error) {
-      console.error("Lỗi khi lấy slider images:", error);
-    }
+      },
+      "slider_component" // 🎯 QUAN TRỌNG: Dùng FIXED ID
+    );
+
+    listenerRef.current = unsubscribe;
+
+    // Cleanup
+    return () => {
+      console.log("🧹 Slider component unmounting...");
+      isMountedRef.current = false;
+
+      if (listenerRef.current) {
+        listenerRef.current();
+      }
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
   }, []);
 
-  // Auto slide - FIX: Clear timeout properly
+  // Auto slide
   useEffect(() => {
-    if (isPaused || slides.length <= 1) return;
+    if (isPaused || slides.length <= 1) {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      return;
+    }
 
     timeoutRef.current = setTimeout(() => {
-      setCurrentIndex((prev) => (prev + 1) % slides.length);
+      if (isMountedRef.current) {
+        setCurrentIndex((prev) => (prev + 1) % slides.length);
+      }
     }, 3000);
 
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
     };
   }, [currentIndex, isPaused, slides.length]);
 
-  // const nextSlide = () => {
-  //   setCurrentIndex((prev) => (prev + 1) % slides.length);
-  // };
+  const deleteSlide = useCallback(
+    async (id) => {
+      if (!loggedIn || !window.confirm("Bạn có chắc muốn xóa ảnh này?")) return;
 
-  // const prevSlide = () => {
-  //   setCurrentIndex((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
-  // };
+      try {
+        const newSlides = slides.filter((s) => s.id !== id);
+        const imageUrls = newSlides.map((s) => s.image);
+        await saveSliderImages(imageUrls);
 
-  const deleteSlide = async (id) => {
-    if (!loggedIn || !window.confirm("Bạn có chắc muốn xóa ảnh này?")) return;
+        // 🎯 Không cần setSlides ở đây vì listener sẽ tự động update
+        // Chỉ cần điều chỉnh currentIndex nếu cần
+        if (currentIndex >= newSlides.length && newSlides.length > 0) {
+          setCurrentIndex(newSlides.length - 1);
+        } else if (newSlides.length === 0) {
+          setCurrentIndex(0);
+        }
+      } catch (error) {
+        console.error("Lỗi khi xóa slide:", error);
+        alert("Lỗi khi xóa ảnh");
+      }
+    },
+    [loggedIn, slides, currentIndex]
+  );
 
-    try {
-      const newSlides = slides.filter((s) => s.id !== id);
-      const imageUrls = newSlides.map((s) => s.image);
-      await saveSliderImages(imageUrls);
-    } catch (error) {
-      console.error("Lỗi khi xóa slide:", error);
-      alert("Lỗi khi xóa ảnh");
-    }
-  };
-
-  // Mở modal xem ảnh to
-  const openImageModal = (imageUrl, index) => {
+  const openImageModal = useCallback((imageUrl, index) => {
     setModalImage(imageUrl);
-    setCurrentIndex(index); // Set đúng index khi click
+    setCurrentIndex(index);
     setShowModal(true);
-  };
+    setIsPaused(true);
+  }, []);
 
-  // Đóng modal
-  const closeImageModal = () => {
+  const closeImageModal = useCallback(() => {
     setShowModal(false);
-  };
+    setIsPaused(false);
+  }, []);
 
-  // Chuyển ảnh trong modal
-  const nextImageModal = () => {
+  const nextImageModal = useCallback(() => {
+    if (slides.length <= 1) return;
     const nextIndex = (currentIndex + 1) % slides.length;
     setCurrentIndex(nextIndex);
     setModalImage(slides[nextIndex]?.image);
-  };
+  }, [currentIndex, slides]);
 
-  const prevImageModal = () => {
+  const prevImageModal = useCallback(() => {
+    if (slides.length <= 1) return;
     const prevIndex = currentIndex === 0 ? slides.length - 1 : currentIndex - 1;
     setCurrentIndex(prevIndex);
     setModalImage(slides[prevIndex]?.image);
-  };
+  }, [currentIndex, slides]);
 
-  // Đóng modal khi click ra ngoài
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) {
-      closeImageModal();
-    }
-  };
+  const handleBackdropClick = useCallback(
+    (e) => {
+      if (e.target === e.currentTarget) {
+        closeImageModal();
+      }
+    },
+    [closeImageModal]
+  );
 
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (!showModal) return;
+      if (!showModal || !isMountedRef.current) return;
 
       switch (e.key) {
         case "Escape":
@@ -137,16 +166,26 @@ export default function Slider({ loggedIn }) {
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [showModal, currentIndex, slides.length]);
+    if (showModal) {
+      document.addEventListener("keydown", handleKeyDown);
+    }
 
-  // FIX: Thêm check slides rỗng
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showModal, prevImageModal, nextImageModal, closeImageModal]);
+
+  // Empty state
   if (!slides || slides.length === 0) {
     return (
       <div className="slider-wrapper">
         <div className="no-slides">
           <p>Chưa có ảnh nào trong slider</p>
+          {loggedIn && (
+            <p className="no-slides-hint">
+              (Vui lòng thêm ảnh từ trang quản lý)
+            </p>
+          )}
         </div>
       </div>
     );
@@ -166,24 +205,34 @@ export default function Slider({ loggedIn }) {
               style={{ transform: `translateX(-${currentIndex * 100}%)` }}
             >
               {slides.map((slide, index) => (
-                <div key={slide.id} className="slide">
+                <div key={`slide-${slide.id}-${index}`} className="slide">
                   <div
                     className="slide-image"
                     style={{ backgroundImage: `url(${slide.image})` }}
                     onClick={() => openImageModal(slide.image, index)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Xem ảnh ${index + 1} to hơn`}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openImageModal(slide.image, index);
+                      }
+                    }}
                   >
                     {loggedIn && (
                       <button
                         className="btn-delete"
                         onClick={(e) => {
                           e.stopPropagation();
+                          e.preventDefault();
                           deleteSlide(slide.id);
                         }}
+                        aria-label={`Xóa ảnh ${index + 1}`}
                       >
                         ✕
                       </button>
                     )}
-                    {/* Hiệu ứng click để xem ảnh to */}
                     <div className="zoom-overlay">
                       <span className="zoom-icon">🔍</span>
                       <span className="zoom-text">Click để xem ảnh to</span>
@@ -194,17 +243,17 @@ export default function Slider({ loggedIn }) {
             </div>
           </div>
         </div>
-        <div></div>
 
         {/* Dots indicator */}
-
         {slides.length > 1 && (
           <div className="dots-container">
             {slides.map((_, index) => (
               <button
-                key={index}
+                key={`dot-${index}`}
                 className={`dot ${index === currentIndex ? "active" : ""}`}
                 onClick={() => setCurrentIndex(index)}
+                aria-label={`Chuyển đến ảnh ${index + 1}`}
+                aria-current={index === currentIndex ? "true" : "false"}
               />
             ))}
           </div>
@@ -213,27 +262,43 @@ export default function Slider({ loggedIn }) {
 
       {/* Modal xem ảnh to */}
       {showModal && (
-        <div className="image-modal" onClick={handleBackdropClick}>
+        <div
+          className="image-modal"
+          onClick={handleBackdropClick}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-title"
+        >
           <div className="modal-content">
-            <button className="modal-close-btn" onClick={closeImageModal}>
+            <button
+              className="modal-close-btn"
+              onClick={closeImageModal}
+              aria-label="Đóng ảnh"
+            >
               ✕
             </button>
 
             <div className="modal-image-container">
-              <img src={modalImage} alt="Xem to" className="modal-image" />
+              <img
+                src={modalImage}
+                alt={`Ảnh ${currentIndex + 1} của ${slides.length}`}
+                className="modal-image"
+                id="modal-title"
+              />
 
-              {/* Navigation trong modal */}
               {slides.length > 1 && (
                 <>
                   <button
                     className="modal-nav-btn modal-prev-btn"
                     onClick={prevImageModal}
+                    aria-label="Ảnh trước"
                   >
                     ‹
                   </button>
                   <button
                     className="modal-nav-btn modal-next-btn"
                     onClick={nextImageModal}
+                    aria-label="Ảnh sau"
                   >
                     ›
                   </button>
@@ -241,7 +306,6 @@ export default function Slider({ loggedIn }) {
               )}
             </div>
 
-            {/* Counter */}
             {slides.length > 1 && (
               <div className="image-counter">
                 {currentIndex + 1} / {slides.length}

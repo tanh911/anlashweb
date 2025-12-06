@@ -19,7 +19,35 @@ const Gallery = ({ loggedIn }) => {
   const [editFolderName, setEditFolderName] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedImages, setSelectedImages] = useState([]);
+  const [folderImageCounts, setFolderImageCounts] = useState({});
+  // eslint-disable-next-line no-unused-vars
+  const [folderStats, setFolderStats] = useState({});
+  const loadFolderImageCounts = async () => {
+    try {
+      const counts = {};
 
+      for (const folder of folders) {
+        const images = await getImagesByFolder(folder.id);
+        counts[folder.id] = images.length;
+      }
+
+      setFolderImageCounts(counts);
+    } catch (error) {
+      console.error("Lỗi khi lấy số ảnh folder:", error);
+    }
+  };
+
+  // Gọi hàm khi folders thay đổi
+  useEffect(() => {
+    if (folders.length > 0) {
+      loadFolderImageCounts();
+    }
+  }, [folders]);
+
+  // Hàm helper để lấy số ảnh
+  const getFolderImageCount = (folderId) => {
+    return folderImageCounts[folderId] || 0;
+  };
   // Load folders khi component mount
   useEffect(() => {
     console.log("Loading folders for all users...");
@@ -182,9 +210,29 @@ const Gallery = ({ loggedIn }) => {
     try {
       await saveImageToFolder(folderId, url);
 
+      // 🎯 Cập nhật images nếu đang ở folder hiện tại
       if (currentFolder === folderId) {
         setImages((prev) => [...prev, url]);
       }
+
+      // 🎯 Cập nhật folders state
+      setFolders((prevFolders) =>
+        prevFolders.map((folder) =>
+          folder.id === folderId
+            ? {
+                ...folder,
+                itemCount: (folder.itemCount || 0) + 1,
+                updatedAt: new Date().toISOString(),
+              }
+            : folder
+        )
+      );
+
+      // 🎯 Cũng cập nhật folderStats
+      setFolderStats((prev) => ({
+        ...prev,
+        [folderId]: (prev[folderId] || 0) + 1,
+      }));
 
       alert("✅ Upload ảnh thành công!");
     } catch (error) {
@@ -233,7 +281,15 @@ const Gallery = ({ loggedIn }) => {
         <div className="header-left">
           <div className="gallery-logo">
             <span className="logo-icon">📷</span>
-            <span className="logo-text">Bộ Sưu Tập</span>
+            <span
+              className="logo-text"
+              style={{
+                fontFamily: "'Kavoon', serif",
+                letterSpacing: "0.5px",
+              }}
+            >
+              Bộ Sưu Tập
+            </span>
           </div>
         </div>
       </div>
@@ -244,7 +300,6 @@ const Gallery = ({ loggedIn }) => {
           <div className="sidebar-header">
             <h2 className="sidebar-title">📁 Thư mục</h2>
           </div>
-
           <div className="folders-list">
             {folders.length === 0 ? (
               <div className="empty-state">
@@ -274,7 +329,7 @@ const Gallery = ({ loggedIn }) => {
                   <div className="folder-info">
                     <div className="folder-name">{folder.name}</div>
                     <div className="folder-stats">
-                      {folder.itemCount || 0} ảnh
+                      {getFolderImageCount(folder.id) || 0} ảnh
                     </div>
                   </div>
                   {loggedIn && (
@@ -374,9 +429,19 @@ const Gallery = ({ loggedIn }) => {
               <div style={{ marginTop: "20px" }}>
                 <FolderUploader
                   loggedIn={loggedIn}
-                  onUploadSuccess={(url) =>
-                    handleFolderUploadSuccess(url, currentFolder)
-                  }
+                  onUploadSuccess={(url) => {
+                    // Thêm điều kiện trực tiếp
+                    if (
+                      window.lastUploadUrl !== url ||
+                      Date.now() - window.lastUploadTime > 1000
+                    ) {
+                      window.lastUploadUrl = url;
+                      window.lastUploadTime = Date.now();
+                      handleFolderUploadSuccess(url, currentFolder);
+                    } else {
+                      console.log("🔄 Bỏ qua duplicate callback");
+                    }
+                  }}
                   folderId={currentFolder}
                   buttonText="Upload ảnh"
                 />
