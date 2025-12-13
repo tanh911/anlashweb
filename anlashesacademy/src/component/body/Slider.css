@@ -346,6 +346,9 @@
   .modal-next-btn {
     right: 10px;
   }
+
+  .zoom-overlay {
+  }
 }
 
 @media (max-width: 480px) {

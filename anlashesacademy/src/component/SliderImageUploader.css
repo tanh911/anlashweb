@@ -203,16 +203,25 @@
   justify-content: space-between;
   font-size: 14px;
   font-weight: 600;
+  gap: 10px;
   align-items: center;
 }
-
+.delete-multiple-btn {
+  background: red !important;
+  color: white !important;
+  border-radius: 6px !important;
+  transition: 0.2s;
+  width: 90px !important;
+  height: 40px;
+  margin-left: 9px;
+}
 /* Button xóa */
 .delete-btn {
   background: red !important;
   color: white !important;
   border-radius: 6px !important;
-  padding: 6px 12px !important;
   transition: 0.2s;
+  width: 70px !important;
 }
 
 .delete-btn:hover {

@@ -118,7 +118,6 @@ export default function About({ loggedIn }) {
     e.preventDefault();
     try {
       setError("");
-      console.log("Form data:", formData);
 
       // Chuẩn bị dữ liệu đúng với model
       const courseData = {
@@ -130,8 +129,6 @@ export default function About({ loggedIn }) {
         // KHÔNG gửi instructor object nếu model không hỗ trợ
         // instructor sẽ được gắn tự động từ token ở backend
       };
-
-      console.log("Course data to send:", courseData);
 
       if (editingCourse) {
         await updateCourse(editingCourse._id, courseData);

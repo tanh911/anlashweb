@@ -50,16 +50,13 @@ const Gallery = ({ loggedIn }) => {
   };
   // Load folders khi component mount
   useEffect(() => {
-    console.log("Loading folders for all users...");
     setLoading(true);
     loadFolders();
   }, []);
 
   const loadFolders = async () => {
-    console.log("Loading folders...");
     try {
       const foldersData = await getFolders();
-      console.log("Folders loaded:", foldersData);
 
       setFolders(foldersData || []);
 
@@ -79,7 +76,6 @@ const Gallery = ({ loggedIn }) => {
   };
 
   const loadImages = async (folderId) => {
-    console.log("Loading images for folder:", folderId);
     try {
       const folderImages = await getImagesByFolder(folderId);
       setImages(folderImages || []);
@@ -200,8 +196,6 @@ const Gallery = ({ loggedIn }) => {
   };
 
   const handleFolderUploadSuccess = async (url, folderId) => {
-    console.log("Upload success:", url, "for folder:", folderId);
-
     if (!loggedIn) {
       alert("Vui lòng đăng nhập để upload ảnh!");
       return;
@@ -438,8 +432,6 @@ const Gallery = ({ loggedIn }) => {
                       window.lastUploadUrl = url;
                       window.lastUploadTime = Date.now();
                       handleFolderUploadSuccess(url, currentFolder);
-                    } else {
-                      console.log("🔄 Bỏ qua duplicate callback");
                     }
                   }}
                   folderId={currentFolder}

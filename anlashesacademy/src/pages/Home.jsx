@@ -40,18 +40,11 @@ export default function Home({ loggedIn }) {
 
   const fetchPosts = async () => {
     try {
-      console.log(
-        "🔄 Fetching posts from:",
-        `${API_BASE}/content/posts/published`
-      );
-
       const response = await axios.get(`${API_BASE}/content/posts/published`);
 
       if (response.data && response.data.success) {
         setPosts(response.data.data || []);
-        console.log(`✅ Loaded ${response.data.data?.length || 0} posts`);
       } else {
-        console.log("❌ API response not successful:", response.data);
         setPosts([]);
       }
     } catch (error) {
@@ -92,13 +85,10 @@ export default function Home({ loggedIn }) {
     const postToDelete = posts.find((p) => p._id === postId);
 
     if (!postToDelete) {
-      console.log("❌ Không tìm thấy post để xóa");
       return;
     }
 
     const snapshot = JSON.parse(JSON.stringify(postToDelete)); // Deep copy
-
-    console.log("📸 Snapshot saved:", snapshot.title);
 
     if (!window.confirm("Bạn có chắc muốn xóa bài viết này?")) {
       return;
@@ -114,8 +104,6 @@ export default function Home({ loggedIn }) {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log("✅ Xóa thành công trên server");
-
       // 4. Hiện nút undo
       setDeletedPost({
         ...snapshot,
@@ -127,7 +115,6 @@ export default function Home({ loggedIn }) {
       const timeout = setTimeout(() => {
         setShowUndo(false);
         setDeletedPost(null);
-        console.log("⏰ Đã hết thời gian undo");
       }, 30000);
 
       setUndoTimeout(timeout);
@@ -169,7 +156,6 @@ export default function Home({ loggedIn }) {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log("✅ Đã khôi phục trên server");
       alert("✅ Đã khôi phục bài viết: ");
     } catch (error) {
       console.error("Lỗi khi undo:", error);

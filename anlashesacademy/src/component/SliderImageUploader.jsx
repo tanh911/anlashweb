@@ -35,9 +35,6 @@ const SliderImageUploader = ({
       );
     }
 
-    console.log(
-      `🔄 Valid images: ${existingImages.length} -> ${uniqueImages.length} unique`
-    );
     return uniqueImages;
   }, [existingImages]); // ✅ Chỉ phụ thuộc vào existingImages
 
@@ -91,12 +88,8 @@ const SliderImageUploader = ({
     setError("");
 
     try {
-      console.log("🔄 Bắt đầu upload ảnh slider:", file.name);
-      console.log("📊 Current valid images:", validExistingImages.length);
-
       // Upload lên Cloudinary
       const downloadURL = await uploadToCloudinary(file);
-      console.log("✅ Upload slider thành công:", downloadURL);
 
       // 🎯 KIỂM TRA TRÙNG LẶP VỚI validExistingImages
       if (isDuplicateImage(downloadURL, validExistingImages)) {
@@ -124,12 +117,6 @@ const SliderImageUploader = ({
         console.error("❌ Có duplicate trong updatedImages!");
       }
 
-      console.log("🖼️ Saving slider images:", {
-        current: validExistingImages.length,
-        new: downloadURL.substring(downloadURL.length - 30),
-        total: uniqueImages.length,
-      });
-
       // 🎯 THÊM DELAY để tránh race condition
       await new Promise((resolve) => setTimeout(resolve, 200));
 
@@ -137,8 +124,6 @@ const SliderImageUploader = ({
 
       // 🎯 THÊM DELAY sau khi save
       await new Promise((resolve) => setTimeout(resolve, 300));
-
-      console.log("✅ Đã lưu slider images");
 
       if (onUploadSuccess) {
         onUploadSuccess(downloadURL, uniqueImages);
@@ -160,9 +145,6 @@ const SliderImageUploader = ({
     }
 
     try {
-      console.log("🗑️ Deleting image at index:", index);
-      console.log("📊 Current images:", validExistingImages.length);
-
       // Xóa ảnh
       const updatedImages = validExistingImages.filter((_, i) => i !== index);
 
@@ -205,9 +187,6 @@ const SliderImageUploader = ({
       sortedIndices.forEach((index) => {
         updatedImages = updatedImages.filter((_, i) => i !== index);
       });
-
-      console.log(`🗑️ Deleting ${imagesToDelete.length} images`);
-      console.log("📊 New images count:", updatedImages.length);
 
       // 🎯 THÊM DELAY
       await new Promise((resolve) => setTimeout(resolve, 200));
@@ -349,10 +328,7 @@ const SliderImageUploader = ({
   //     alert("❌ Lỗi khi dọn dẹp ảnh null");
   //   }
   // };
-  console.log(
-    "🔄 SliderImageUploader render, valid images:",
-    validExistingImages.length
-  );
+
   return (
     <div className="image-uploader">
       <div className="uploader-header">
@@ -368,14 +344,14 @@ const SliderImageUploader = ({
             </button>
           )} */}
         </div>
-        {imagesToDelete.length > 0 && (
+        {/* {imagesToDelete.length > 0 && (
           <button
             className="delete-multiple-btn"
             onClick={handleMultipleDelete}
           >
             🗑️ Xóa ({imagesToDelete.length})
           </button>
-        )}
+        )} */}
       </div>
 
       <div
@@ -499,6 +475,14 @@ const SliderImageUploader = ({
               );
             })}
           </div>
+          {imagesToDelete.length > 1 && (
+            <button
+              className="delete-multiple-btn"
+              onClick={handleMultipleDelete}
+            >
+              🗑️ Xóa ({imagesToDelete.length})
+            </button>
+          )}
         </div>
       )}
     </div>

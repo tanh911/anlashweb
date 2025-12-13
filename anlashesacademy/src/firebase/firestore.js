@@ -14,7 +14,6 @@ let lastDataHash = null;
 const debouncedSave = async (operationId, saveFunction) => {
   // Nếu operation này đang chạy, không chạy lại
   if (saveOperations.has(operationId)) {
-    console.log(`⏳ Operation ${operationId} đang chạy, bỏ qua...`);
     return;
   }
 
@@ -42,8 +41,6 @@ const generateListenerId = (type, suffix = "") => {
 export const saveSliderImages = async (images) => {
   return debouncedSave("saveSliderImages", async () => {
     try {
-      console.log("💾 Đang lưu slider images...", images);
-
       const sliderRef = doc(db, "websiteContent", "slider");
 
       await setDoc(
@@ -66,17 +63,13 @@ export const saveSliderImages = async (images) => {
 
 export const getSliderImages = async () => {
   try {
-    console.log("📥 Đang lấy slider images...");
-
     const sliderRef = doc(db, "websiteContent", "slider");
     const docSnap = await getDoc(sliderRef);
 
     if (docSnap.exists()) {
       const data = docSnap.data();
-      console.log("✅ Đã lấy slider images:", data.images);
       return data.images || [];
     } else {
-      console.log("📝 Chưa có slider images, trả về mảng rỗng");
       return [];
     }
   } catch (error) {
@@ -88,6 +81,7 @@ export const getSliderImages = async () => {
 // firestore.js - SỬA HÀM listenToSliderImages
 export const listenToSliderImages = (callback, listenerId = null) => {
   try {
+    // eslint-disable-next-line no-unused-vars
     const id = listenerId || `slider_${Date.now()}`;
 
     // 🎯 CHỈ TẠO 1 LISTENER GLOBAL DUY NHẤT
@@ -99,7 +93,6 @@ export const listenToSliderImages = (callback, listenerId = null) => {
         (docSnapshot) => {
           // 🎯 CHẶN XỬ LÝ TRÙNG
           if (isProcessing) {
-            console.log("⏸️ Đang xử lý, bỏ qua snapshot");
             return;
           }
 
@@ -110,16 +103,6 @@ export const listenToSliderImages = (callback, listenerId = null) => {
               const data = docSnapshot.data();
               const images = data.images || [];
               const currentHash = JSON.stringify(images);
-
-              console.log("🔍 Firestore snapshot data:", {
-                exists: docSnapshot.exists(),
-                data: data,
-                imagesCount: images.length,
-                currentHash: currentHash.substring(0, 50) + "...",
-                lastDataHash: lastDataHash
-                  ? lastDataHash.substring(0, 50) + "..."
-                  : "null",
-              });
 
               // 🎯 KIỂM TRA DỮ LIỆU CÓ THAY ĐỔI KHÔNG
               if (currentHash === lastDataHash) {
@@ -140,7 +123,6 @@ export const listenToSliderImages = (callback, listenerId = null) => {
                 }
               });
             } else {
-              console.log("📝 Document slider chưa tồn tại");
               lastDataHash = JSON.stringify([]);
               const callbacksArray = Array.from(globalSliderCallbacks);
               callbacksArray.forEach((cb, index) => {
@@ -181,7 +163,6 @@ export const listenToSliderImages = (callback, listenerId = null) => {
           const images = data.images || [];
           callback(images);
         } else {
-          console.log("📦 Gửi empty array cho callback mới");
           callback([]);
         }
       } catch (error) {
@@ -195,12 +176,10 @@ export const listenToSliderImages = (callback, listenerId = null) => {
 
     // 🎯 TRẢ VỀ HÀM UNSUBSCRIBE
     const unsubscribe = () => {
-      console.log(`🛑 Hủy đăng ký callback: ${id}`);
       globalSliderCallbacks.delete(callback);
 
       // 🎯 NẾU KHÔNG CÒN CALLBACK NÀO, HỦY LISTENER
       if (globalSliderCallbacks.size === 0 && globalSliderListener) {
-        console.log("🧹 Không còn callback nào, hủy global listener");
         globalSliderListener();
         globalSliderListener = null;
         lastDataHash = null;
@@ -227,8 +206,6 @@ export const getListenerStatus = () => {
  * Force cleanup tất cả listeners
  */
 export const forceCleanupAllListeners = () => {
-  console.log("🧹 Force cleanup all listeners");
-
   if (globalSliderListener) {
     globalSliderListener();
     globalSliderListener = null;
@@ -242,8 +219,6 @@ export const forceCleanupAllListeners = () => {
 export const saveImageList = async (images) => {
   return debouncedSave("saveImageList", async () => {
     try {
-      console.log("💾 Đang lưu danh sách ảnh...", images);
-
       const imageListRef = doc(db, "websiteContent", "imageList");
 
       await setDoc(
@@ -256,7 +231,6 @@ export const saveImageList = async (images) => {
         { merge: true }
       );
 
-      console.log("✅ Đã lưu danh sách ảnh thành công!");
       return true;
     } catch (error) {
       console.error("❌ Lỗi khi lưu danh sách ảnh:", error);
@@ -267,17 +241,13 @@ export const saveImageList = async (images) => {
 
 export const getImageList = async () => {
   try {
-    console.log("📥 Đang lấy danh sách ảnh...");
-
     const imageListRef = doc(db, "websiteContent", "imageList");
     const docSnap = await getDoc(imageListRef);
 
     if (docSnap.exists()) {
       const data = docSnap.data();
-      console.log("✅ Đã lấy danh sách ảnh:", data.images);
       return data.images || [];
     } else {
-      console.log("📝 Chưa có danh sách ảnh, trả về mảng rỗng");
       return [];
     }
   } catch (error) {
@@ -332,7 +302,6 @@ export const getFolders = async () => {
         updatedAt: new Date().toISOString(),
       };
       await setDoc(docRef, initialData);
-      console.log("📁 Chưa có folder, tạo mới");
       return [];
     }
   } catch (error) {
@@ -344,8 +313,6 @@ export const getFolders = async () => {
 export const saveFolders = async (folders) => {
   return debouncedSave("saveFolders", async () => {
     try {
-      console.log("💾 Đang lưu danh sách folder...", folders);
-
       const docRef = doc(db, "gallery", "folders");
 
       // 🎯 ĐẢM BẢO folders là array của objects
@@ -421,8 +388,6 @@ export const saveImageToFolder = async (folderId, imageUrl) => {
   const operationId = `saveImageToFolder_${folderId}`;
   return debouncedSave(operationId, async () => {
     try {
-      console.log(`💾 Đang lưu ảnh vào folder ${folderId}...`, imageUrl);
-
       const docRef = doc(db, "gallery_images", folderId);
       const docSnap = await getDoc(docRef);
 
@@ -434,9 +399,6 @@ export const saveImageToFolder = async (folderId, imageUrl) => {
       // KIỂM TRA TRÙNG LẶP - Đây là nguyên nhân chính gây lưu 2 lần
       const isDuplicate = currentImages.some((img) => img === imageUrl);
       if (isDuplicate) {
-        console.log(
-          `⚠️ Ảnh đã tồn tại trong folder ${folderId}, không lưu lại`
-        );
         return;
       }
 
@@ -448,8 +410,6 @@ export const saveImageToFolder = async (folderId, imageUrl) => {
         updatedAt: new Date().toISOString(),
         ...(docSnap.exists() ? {} : { createdAt: new Date().toISOString() }),
       });
-
-      console.log(`✅ Đã lưu ảnh vào folder ${folderId} thành công`);
     } catch (error) {
       console.error(`❌ Lỗi khi lưu ảnh vào folder ${folderId}:`, error);
       throw error;
@@ -461,8 +421,6 @@ export const deleteImageFromFolder = async (folderId, imageIndex) => {
   const operationId = `deleteImageFromFolder_${folderId}_${imageIndex}`;
   return debouncedSave(operationId, async () => {
     try {
-      console.log(`🗑️ Đang xóa ảnh ${imageIndex} từ folder ${folderId}...`);
-
       const docRef = doc(db, "gallery_images", folderId);
       const docSnap = await getDoc(docRef);
 
@@ -485,12 +443,6 @@ export const deleteImageFromFolder = async (folderId, imageIndex) => {
           images: updatedImages,
           updatedAt: new Date().toISOString(),
         });
-
-        console.log(
-          `✅ Đã xóa ảnh ${imageIndex} từ folder ${folderId} thành công`
-        );
-      } else {
-        console.log(`📝 Folder ${folderId} không tồn tại`);
       }
     } catch (error) {
       console.error(`❌ Lỗi khi xóa ảnh từ folder ${folderId}:`, error);
@@ -511,7 +463,6 @@ export const deleteImageFromFolder = async (folderId, imageIndex) => {
 export const listenToFolderImages = (folderId, callback, listenerId = null) => {
   try {
     const id = listenerId || generateListenerId(`folder_${folderId}`);
-    console.log(`👂 Đang thiết lập listener ${id} cho folder ${folderId}...`);
 
     // Thiết lập listener mới
     const docRef = doc(db, "gallery_images", folderId);
@@ -523,18 +474,12 @@ export const listenToFolderImages = (folderId, callback, listenerId = null) => {
           if (docSnapshot.exists()) {
             const data = docSnapshot.data();
             const images = data.images || [];
-            console.log(
-              `📡 [${id}] Nhận ${images.length} ảnh mới từ folder ${folderId}`
-            );
 
             // Gọi callback với dữ liệu mới
             if (typeof callback === "function") {
               callback(images);
             }
           } else {
-            console.log(
-              `📝 [${id}] Folder ${folderId} chưa tồn tại, trả về mảng rỗng`
-            );
             if (typeof callback === "function") {
               callback([]);
             }
@@ -560,12 +505,8 @@ export const listenToFolderImages = (folderId, callback, listenerId = null) => {
       }
     );
 
-    // Lưu lại listener để quản lý
-    console.log(`✅ Đã thiết lập listener ${id} thành công`);
-
     // Trả về hàm unsubscribe
     const unsubscribeWrapper = () => {
-      console.log(`🛑 Đang dừng listener ${id}...`);
       unsubscribe();
     };
 
@@ -582,13 +523,6 @@ export const listenToFolderImages = (folderId, callback, listenerId = null) => {
 };
 
 /**
- * Hủy tất cả active listeners
- */
-export const cleanupAllListeners = () => {
-  console.log(`🧹 Đang dọn dẹp tất cả listeners...`);
-};
-
-/**
  * Lấy thông tin trạng thái hiện tại của firestore module
  */
 export const getFirestoreStatus = () => {
@@ -602,7 +536,5 @@ export const getFirestoreStatus = () => {
  * Clear tất cả debounce operations
  */
 export const clearAllDebounce = () => {
-  const count = saveOperations.size;
   saveOperations.clear();
-  console.log(`🧹 Đã clear ${count} debounce operations`);
 };

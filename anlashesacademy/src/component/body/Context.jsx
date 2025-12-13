@@ -31,12 +31,8 @@ const PostEditor = ({ onSave, onCancel }) => {
     setUploadingImage(true);
 
     try {
-      console.log("🔄 Uploading image to Cloudinary:", file.name);
-
       // Upload trực tiếp lên Cloudinary từ FE
       const imageUrl = await uploadToCloudinary(file);
-
-      console.log("✅ Image uploaded:", imageUrl);
 
       // Chèn ảnh vào vị trí con trỏ
       insertImageAtCursor(imageUrl, file.name);
@@ -121,13 +117,13 @@ const PostEditor = ({ onSave, onCancel }) => {
       setSaving(true);
       const token = localStorage.getItem("token");
 
+      // eslint-disable-next-line no-unused-vars
       const response = await axios.post(`${API_BASE}/content/posts`, postData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      console.log("✅ Post created successfully:", response.data);
       onSave();
       alert("✅ Bài viết đã được đăng thành công!");
     } catch (error) {

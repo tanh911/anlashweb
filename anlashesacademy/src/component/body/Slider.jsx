@@ -20,7 +20,6 @@ export default function Slider({ loggedIn }) {
   useEffect(() => {
     isMountedRef.current = true;
 
-    console.log("🎬 Slider component mounting...");
     if (listenerRef.current) {
       listenerRef.current();
     }
@@ -29,8 +28,6 @@ export default function Slider({ loggedIn }) {
     const unsubscribe = listenToSliderImages(
       (images) => {
         if (!isMountedRef.current) return;
-
-        console.log("📥 Slider nhận images:", images?.length || 0);
 
         if (images && Array.isArray(images)) {
           const mapped = images.map((url, idx) => ({
@@ -50,7 +47,6 @@ export default function Slider({ loggedIn }) {
 
     // Cleanup
     return () => {
-      console.log("🧹 Slider component unmounting...");
       isMountedRef.current = false;
 
       if (listenerRef.current) {

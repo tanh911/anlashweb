@@ -34,11 +34,8 @@ const FolderImageUploader = ({
         Date.now() + "-" + Math.random().toString(36).substr(2, 9);
       uploadIdRef.current = uploadId;
 
-      console.log(`[${uploadId}] Bắt đầu upload`);
-
       // Kiểm tra đang upload
       if (isUploadingRef.current) {
-        console.log(`[${uploadId}] Đang upload, bỏ qua`);
         return;
       }
 
@@ -68,16 +65,11 @@ const FolderImageUploader = ({
       setFileName(file.name);
 
       try {
-        console.log(`[${uploadId}] Uploading to Cloudinary...`);
-
         // Upload lên Cloudinary
         const downloadURL = await uploadToCloudinary(file);
-        console.log(`[${uploadId}] Cloudinary thành công:`, downloadURL);
 
         // Lưu vào Firebase với folderId
-        console.log(`[${uploadId}] Saving to Firebase...`);
         await saveImageToFolder(folderId, downloadURL);
-        console.log(`[${uploadId}] Firebase thành công`);
 
         // Chỉ gọi onUploadSuccess nếu vẫn là cùng uploadId
         if (
@@ -86,12 +78,7 @@ const FolderImageUploader = ({
           !hasUploadedRef.current
         ) {
           hasUploadedRef.current = true;
-          console.log(`[${uploadId}] Gọi onUploadSuccess`);
           onUploadSuccess(downloadURL, folderId);
-        } else {
-          console.log(
-            `[${uploadId}] Bỏ qua onUploadSuccess (đã gọi hoặc uploadId khác)`
-          );
         }
 
         // Alert với delay
@@ -117,7 +104,6 @@ const FolderImageUploader = ({
             }
           }, 300);
         }
-        console.log(`[${uploadId}] Kết thúc upload process`);
       }
     },
     [folderId, onUploadSuccess]

@@ -1,20 +1,34 @@
-// AdminPanel.jsx (thay file cũ)
+// AdminPanel.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./AdminPanel.css";
-
+import { dateUtils } from "../utils/dateUtils";
 const API_BASE = import.meta.env.VITE_API_URL;
 
-const AUTH_HEADER = { Authorization: "Bearer admin-secret-token" }; // đổi token nếu cần
-
+const AUTH_HEADER = { Authorization: "Bearer admin-secret-token" };
+const ALL_TIME_SLOTS = [
+  "08:00",
+  "09:00",
+  "10:00",
+  "11:00",
+  "12:00",
+  "13:00",
+  "14:00",
+  "15:00",
+  "16:00",
+  "17:00",
+  "18:00",
+  "19:00",
+];
 const AdminPanel = () => {
-  // ... giữ lại states cũ ...
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
+  });
   const [selectedDate, setSelectedDate] = useState("");
-  const [schedules, setSchedules] = useState([]);
+  const [schedules, setSchedules] = useState({}); // Đã đổi thành object
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
-
   const [activeTab, setActiveTab] = useState("schedule");
   const [services, setServices] = useState([]);
   const [serviceForm, setServiceForm] = useState({
@@ -26,61 +40,148 @@ const AdminPanel = () => {
   });
   const [editingService, setEditingService] = useState(null);
 
+  const [allTimeSlots, setAllTimeSlots] = useState([]);
   const [scheduleForm, setScheduleForm] = useState({
     date: "",
     available_slots: [],
     is_available: true,
   });
 
-  const allTimeSlots = [
-    "08:00",
-    "09:00",
-    "10:00",
-    "11:00",
-    "13:00",
-    "14:00",
-    "15:00",
-    "16:00",
-    "17:00",
-  ];
-
-  // Content states
-  const [content, setContent] = useState({
-    title: "",
-    subtitle: "",
-    banner: "",
-    gallery: [],
-    about: "",
-  });
-  const [uploading, setUploading] = useState(false);
+  const [appointmentsByDate, setAppointmentsByDate] = useState({});
+  const [selectedDateAppointments, setSelectedDateAppointments] = useState([]);
 
   useEffect(() => {
     fetchSchedules();
     fetchAppointments();
     fetchServices();
-    //fetchContent();
+    loadAppointmentsForMonth();
   }, [currentDate]);
 
-  // ---- Fetching ----
+  useEffect(() => {
+    if (selectedDate) {
+      checkAppointmentsForDate(selectedDate);
+      timeSlotFetch(selectedDate);
+    }
+  }, [selectedDate]);
+  // Thêm useEffect để cập nhật allTimeSlots khi chọn ngày
+  const timeSlotFetch = async (date) => {
+    try {
+      const dateObj = typeof date === "string" ? new Date(date) : date;
+      const dateString = dateUtils.formatToDateString(dateObj);
+      const response = await axios.get(
+        `${API_BASE}/schedule/available/date/${dateString}`
+      );
+
+      if (response.data.success && response.data.data) {
+        const scheduleData = response.data.data;
+        const availableSlots = scheduleData.availableSlots || [];
+        // Lưu danh sách tất cả slot mặc định
+        setAllTimeSlots(ALL_TIME_SLOTS);
+        console.log(availableSlots);
+        // Nếu đây là ngày được chọn, cập nhật form
+        console.log("selected date");
+        // Tính toán giờ bị bỏ chọn
+        const excludedSlots = ALL_TIME_SLOTS.filter(
+          (time) => !availableSlots.includes(time)
+        );
+        console.log(excludedSlots);
+        setScheduleForm({
+          date: dateString,
+          available_slots: excludedSlots ? availableSlots : [],
+          is_available: availableSlots.length > 0,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching time slots:", error);
+      setAllTimeSlots([]);
+    }
+  };
+  const loadAppointmentsForMonth = async () => {
+    try {
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, "0");
+
+      // Preload appointments for visible month if you have an API endpoint
+      // For now, we'll use the existing appointments data
+      console.log("Loading appointments for month:", year, month);
+    } catch (error) {
+      console.error("Error loading appointments for month:", error);
+    }
+  };
+
+  const checkAppointmentsForDate = async (date) => {
+    try {
+      const response = await axios.get(
+        `${API_BASE}/appointments/available/${date}`
+      );
+
+      if (response.data.success && response.data.data) {
+        const bookedSlots = response.data.data.booked_slots || [];
+
+        // Lưu vào state theo ngày
+        setAppointmentsByDate((prev) => ({
+          ...prev,
+          [date]: bookedSlots,
+        }));
+
+        // Lưu appointments cho ngày được chọn
+        setSelectedDateAppointments(bookedSlots);
+
+        return bookedSlots;
+      }
+
+      return [];
+    } catch (error) {
+      console.error(`Error checking appointments for ${date}:`, error);
+      setAppointmentsByDate((prev) => ({
+        ...prev,
+        [date]: [],
+      }));
+      return [];
+    }
+  };
+
+  // Hàm kiểm tra một ngày cụ thể có appointments không
+  const hasAppointmentsOnDate = (dateString) => {
+    const appointments = appointmentsByDate[dateString];
+    return appointments && appointments.length > 0;
+  };
+
   const fetchSchedules = async () => {
     try {
       const year = currentDate.getFullYear();
       const month = String(currentDate.getMonth() + 1).padStart(2, "0");
-      const startDate = `${year}-${month}-01`;
-      const endDate = `${year}-${month}-31`;
       const response = await axios.get(
-        `${API_BASE}/schedule?startDate=${startDate}&endDate=${endDate}`
+        `${API_BASE}/schedule/available/${year}/${month}`
       );
-      if (response.data.success) setSchedules(response.data.data);
+      if (response.data.success) {
+        // QUAN TRỌNG: Đảm bảo schedules là object với key là date string
+        const schedulesData = response.data.data || {};
+        console.log("📅 Schedules fetched:", Object.keys(schedulesData).length);
+        setSchedules(schedulesData);
+      }
     } catch (err) {
       console.error(err);
+      setSchedules({});
     }
   };
 
   const fetchAppointments = async () => {
     try {
       const response = await axios.get(`${API_BASE}/appointments`);
-      if (response.data.success) setAppointments(response.data.data);
+      if (response.data.success) {
+        setAppointments(response.data.data);
+
+        // Tạo appointmentsByDate từ appointments
+        const byDate = {};
+        response.data.data.forEach((app) => {
+          if (!byDate[app.date]) {
+            byDate[app.date] = [];
+          }
+          byDate[app.date].push(app);
+        });
+        setAppointmentsByDate(byDate);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -96,16 +197,6 @@ const AdminPanel = () => {
     }
   };
 
-  // const fetchContent = async () => {
-  //   try {
-  //     const response = await axios.get(`${API_BASE}/content`);
-  //     if (response.data.success) setContent(response.data.data);
-  //   } catch (err) {
-  //     console.error("Lỗi khi lấy content:", err);
-  //   }
-  // };
-
-  // ---- Services handlers ----
   const handleAddService = async (e) => {
     e.preventDefault();
     if (!serviceForm.name.trim()) {
@@ -171,32 +262,40 @@ const AdminPanel = () => {
     });
   };
 
-  // ---- Schedule handlers ----
-  const handleDateSelect = (dateString) => {
-    setSelectedDate(dateString);
-    const existingSchedule = schedules.find((s) => s.date === dateString);
-    if (existingSchedule) {
-      setScheduleForm({
-        date: existingSchedule.date,
-        available_slots: existingSchedule.available_slots,
-        is_available: existingSchedule.is_available,
-      });
-    } else {
-      setScheduleForm({
-        date: dateString,
-        available_slots: [],
-        is_available: true,
-      });
-    }
-  };
+  const handleDateSelect = (date) => {
+    if (!date) return;
 
-  const handleTimeSlotToggle = (time) => {
-    setScheduleForm((prev) => {
-      const newSlots = prev.available_slots.includes(time)
-        ? prev.available_slots.filter((t) => t !== time)
-        : [...prev.available_slots, time].sort();
-      return { ...prev, available_slots: newSlots };
-    });
+    const dateObj = typeof date === "string" ? new Date(date) : date;
+    const dateString = dateUtils.formatToDateString(dateObj);
+
+    setSelectedDate(dateString);
+    checkAppointmentsForDate(dateString);
+
+    // const existingSchedule = schedules[dateString];
+    // if (existingSchedule) {
+    //   // Nếu có schedule trong DB
+    //   const isAvailable = existingSchedule.is_available !== false;
+    //   const workingSlotsFromDB = allTimeSlots || [];
+
+    //   // Tính toán giờ bị loại trừ (giờ mà backend có nhưng admin đã bỏ)
+    //   const excludedSlots = allTimeSlots.filter(
+    //     (time) => !workingSlotsFromDB.includes(time)
+    //   );
+
+    //   setScheduleForm({
+    //     date: dateString,
+    //     available_slots: excludedSlots, // Đây là giờ bị admin bỏ chọn
+    //     is_available: isAvailable,
+    //   });
+    // } else {
+    //   // Nếu chưa có schedule, mặc định là làm việc với tất cả slots
+    //   console.log("📋 No schedule in DB, using all slots as active");
+    //   setScheduleForm({
+    //     date: dateString,
+    //     available_slots: [], // Không có giờ nào bị loại trừ
+    //     is_available: true,
+    //   });
+    // }
   };
 
   const handleSaveSchedule = async () => {
@@ -204,23 +303,78 @@ const AdminPanel = () => {
       alert("Vui lòng chọn ngày!");
       return;
     }
+
+    // Tính toán giờ thực sự làm việc (giờ mặc định TRỪ giờ bị admin bỏ)
+    console.log(scheduleForm);
+    // const workingSlots = allTimeSlots.filter(
+    //   (time) => !scheduleForm.available_slots?.includes(time)
+    // );
+    const workingSlots = scheduleForm.available_slots || [];
+    console.log(workingSlots);
+    const workingSlotsCount = workingSlots.length;
+    console.log(workingSlotsCount);
+    // Kiểm tra nếu có appointments trong giờ bị bỏ
+    const hasAppointmentsInExcludedSlots = scheduleForm.available_slots.some(
+      (time) => selectedDateAppointments.some((app) => app.time === time)
+    );
+
+    if (hasAppointmentsInExcludedSlots) {
+      alert("⚠️ Không thể lưu vì có giờ bạn muốn bỏ đã có lịch hẹn!");
+      return;
+    }
+    // Nếu đang ở chế độ "Làm việc" nhưng không có giờ nào
+    if (scheduleForm.is_available && workingSlotsCount === 0) {
+      const choice = window.confirm(
+        "Bạn đã bỏ chọn tất cả giờ làm việc.\n\n" +
+          "Bạn có muốn:\n" +
+          "1. Chọn lại một vài giờ làm việc\n" +
+          "2. Chuyển sang 'Nghỉ'\n\n" +
+          "Nhấn OK để chọn giờ, Cancel để chuyển sang Nghỉ."
+      );
+
+      if (choice) {
+        return;
+      } else {
+        setScheduleForm((prev) => ({
+          ...prev,
+          is_available: false,
+          available_slots: [...allTimeSlots],
+        }));
+        return;
+      }
+    }
+
     setLoading(true);
     try {
-      const response = await axios.post(`${API_BASE}/schedule`, scheduleForm, {
+      const dataToSend = {
+        date: scheduleForm.date,
+        is_available: scheduleForm.is_available,
+        // Gửi giờ LÀM VIỆC lên server (giờ mặc định trừ giờ bị bỏ)
+        available_slots: scheduleForm.is_available ? workingSlots : [],
+        notes: scheduleForm.is_available
+          ? `Làm việc ${workingSlotsCount} giờ (${workingSlots.join(", ")})`
+          : "Ngày nghỉ",
+      };
+
+      console.log("📤 Saving to server:", dataToSend);
+
+      const response = await axios.post(`${API_BASE}/schedule`, dataToSend, {
         headers: AUTH_HEADER,
       });
+
       if (response.data.success) {
-        alert("Cập nhật lịch thành công!");
-        fetchSchedules();
+        alert("✅ Cập nhật lịch thành công!");
+        await fetchSchedules();
+        await checkAppointmentsForDate(scheduleForm.date);
       }
     } catch (error) {
+      console.error("❌ Error:", error);
       alert(error.response?.data?.error || "Có lỗi xảy ra!");
     } finally {
       setLoading(false);
     }
   };
 
-  // ---- Appointments handlers ----
   const handleConfirmAppointment = async (appointmentId) => {
     try {
       await axios.put(
@@ -230,6 +384,10 @@ const AdminPanel = () => {
       );
       alert("Đã xác nhận lịch hẹn!");
       fetchAppointments();
+      // Refresh selected date appointments
+      if (selectedDate) {
+        checkAppointmentsForDate(selectedDate);
+      }
     } catch (error) {
       alert("Có lỗi xảy ra!", error);
     }
@@ -245,74 +403,15 @@ const AdminPanel = () => {
       );
       alert("Đã hủy lịch hẹn!");
       fetchAppointments();
+      // Refresh selected date appointments
+      if (selectedDate) {
+        checkAppointmentsForDate(selectedDate);
+      }
     } catch (error) {
       alert("Có lỗi xảy ra!", error);
     }
   };
 
-  // ---- Content handlers ----
-  const handleBannerUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const form = new FormData();
-    form.append("file", file);
-    setUploading(true);
-    try {
-      const res = await axios.post(`${API_BASE}/upload`, form, {
-        headers: { ...AUTH_HEADER, "Content-Type": "multipart/form-data" },
-      });
-      if (res.data.success) {
-        setContent((c) => ({ ...c, banner: res.data.url }));
-        alert("Upload banner thành công!");
-      }
-    } catch (err) {
-      alert("Upload thất bại");
-      console.error(err);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleGalleryUpload = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-    setUploading(true);
-    try {
-      for (const file of files) {
-        const form = new FormData();
-        form.append("file", file);
-        const res = await axios.post(`${API_BASE}/upload`, form, {
-          headers: { ...AUTH_HEADER, "Content-Type": "multipart/form-data" },
-        });
-        if (res.data.success) {
-          setContent((c) => ({
-            ...c,
-            gallery: [...(c.gallery || []), res.data.url],
-          }));
-        }
-      }
-      alert("Upload gallery xong");
-    } catch (err) {
-      console.error(err);
-      alert("Upload gallery lỗi");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const saveContent = async () => {
-    try {
-      await axios.post(`${API_BASE}/content`, content, {
-        headers: AUTH_HEADER,
-      });
-      alert("Lưu nội dung thành công!");
-    } catch (err) {
-      console.error(err);
-      alert("Lưu thất bại");
-    }
-  };
-
-  // ---- Calendar UI helper ----
   const getDaysInMonth = () => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -323,7 +422,7 @@ const AdminPanel = () => {
     const days = [];
     for (let i = 0; i < startingDay; i++) days.push(null);
     for (let i = 1; i <= daysInMonth; i++) {
-      const date = new Date(year, month, i);
+      const date = new Date(year, month, i, 12, 0, 0);
       days.push(date);
     }
     return days;
@@ -370,140 +469,361 @@ const AdminPanel = () => {
       </div>
 
       <div className="admin-content">
-        {/* SCHEDULE TAB */}
         {activeTab === "schedule" && (
           <div className="tab-content">
-            {/* calendar and schedule form (same as your original) */}
-            <div className="calendar-section">
-              <div className="calendar-header">
-                <button
-                  className="nav-btn prev"
-                  onClick={() =>
-                    setCurrentDate(
-                      new Date(
-                        currentDate.getFullYear(),
-                        currentDate.getMonth() - 1,
-                        1
+            <div className="calendar-box">
+              <div className="calendar-section">
+                <div className="calendar-header">
+                  <button
+                    className="nav-btn prev"
+                    onClick={() =>
+                      setCurrentDate(
+                        new Date(
+                          currentDate.getFullYear(),
+                          currentDate.getMonth() - 1,
+                          1
+                        )
                       )
-                    )
-                  }
-                >
-                  ‹
-                </button>
-                <span className="current-month">
-                  {monthNames[currentDate.getMonth()]}{" "}
-                  {currentDate.getFullYear()}
-                </span>
-                <button
-                  className="nav-btn next"
-                  onClick={() =>
-                    setCurrentDate(
-                      new Date(
-                        currentDate.getFullYear(),
-                        currentDate.getMonth() + 1,
-                        1
+                    }
+                  >
+                    ‹
+                  </button>
+                  <span className="current-month">
+                    {monthNames[currentDate.getMonth()]}{" "}
+                    {currentDate.getFullYear()}
+                  </span>
+                  <button
+                    className="nav-btn next"
+                    onClick={() =>
+                      setCurrentDate(
+                        new Date(
+                          currentDate.getFullYear(),
+                          currentDate.getMonth() + 1,
+                          1
+                        )
                       )
-                    )
-                  }
-                >
-                  ›
-                </button>
-              </div>
-
-              <div className="calendar">
-                <div className="calendar-weekdays">
-                  {["CN", "T2", "T3", "T4", "T5", "T6", "T7"].map((d) => (
-                    <div key={d} className="weekday">
-                      {d}
-                    </div>
-                  ))}
+                    }
+                  >
+                    ›
+                  </button>
                 </div>
-                <div className="calendar-days">
-                  {days.map((day, index) => {
-                    if (!day)
-                      return (
-                        <div key={index} className="calendar-day empty"></div>
-                      );
-                    const dateString = day.toISOString().split("T")[0];
-                    const schedule = schedules.find(
-                      (s) => s.date === dateString
-                    );
-                    const isSelected = selectedDate === dateString;
-                    const isToday =
-                      day.toDateString() === new Date().toDateString();
-                    return (
-                      <div
-                        key={index}
-                        className={`calendar-day ${
-                          isSelected ? "selected" : ""
-                        } ${isToday ? "today" : ""} ${
-                          schedule ? "has-schedule" : "no-schedule"
-                        }`}
-                        onClick={() => handleDateSelect(dateString)}
-                      >
-                        <span className="day-number">{day.getDate()}</span>
-                        {schedule && schedule.available_slots.length > 0 && (
-                          <div className="slot-count">
-                            {schedule.available_slots.length} giờ
-                          </div>
-                        )}
+
+                <div className="calendar">
+                  <div className="calendar-weekdays">
+                    {["CN", "T2", "T3", "T4", "T5", "T6", "T7"].map((d) => (
+                      <div key={d} className="weekday">
+                        {d}
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
+                  <div className="calendar-days">
+                    {days.map((day, index) => {
+                      if (!day)
+                        return (
+                          <div key={index} className="calendar-day empty"></div>
+                        );
+
+                      const isPast = day < new Date().setHours(0, 0, 0, 0);
+                      const dateString = dateUtils.formatToDateString(day);
+                      const schedule = schedules[dateString]; // Đã là object
+                      const isSelected = selectedDate === dateString;
+                      const isToday =
+                        day.toDateString() === new Date().toDateString();
+
+                      // QUAN TRỌNG: Kiểm tra ngày này có appointments không
+                      const hasAppointments = hasAppointmentsOnDate(dateString);
+
+                      // KIỂM TRA NGÀY NGHỈ: is_available = false HOẶC available_slots rỗng
+                      const isDayOff = schedule
+                        ? schedule.is_available === false ||
+                          schedule.available_slots?.length === 0
+                        : false;
+
+                      return (
+                        <div
+                          key={index}
+                          className={`calendar-day
+                            ${isPast ? "past" : ""}
+                            ${isSelected ? "selected" : ""}
+                            ${isToday ? "today" : ""}
+                            ${isDayOff ? "day-off" : ""}
+                            ${schedule ? "has-schedule" : "no-schedule"}`}
+                          onClick={() =>
+                            !isPast && handleDateSelect(dateString)
+                          }
+                          title={
+                            isDayOff
+                              ? "Ngày nghỉ"
+                              : schedule
+                              ? `Làm việc ${
+                                  schedule.available_slots?.length || 0
+                                } giờ`
+                              : "Chưa có lịch"
+                          }
+                        >
+                          <span className="day-number">{day.getDate()}</span>
+
+                          {/* HIỂN THỊ SLOT INDICATOR NẾU CÓ APPOINTMENTS */}
+                          {hasAppointments && !isDayOff && (
+                            <div className="slot-indicator-admin">
+                              <span className="appointment-dot"></span>
+                            </div>
+                          )}
+
+                          {/* INDICATOR CHO NGÀY NGHỈ */}
+                          {isDayOff && (
+                            <div className="day-off-indicator">❌</div>
+                          )}
+
+                          {schedule &&
+                            !isDayOff &&
+                            Array.isArray(schedule.available_slots) &&
+                            schedule.available_slots.length > 0 && (
+                              <div className="slot-count">
+                                {schedule.available_slots.length} giờ
+                              </div>
+                            )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
 
+            {selectedDate && selectedDateAppointments.length > 0 && (
+              <div className="appointment-notification">
+                <div className="notification-header">
+                  <span className="notification-icon"></span>
+                  <span>
+                    Có {selectedDateAppointments.length} lịch hẹn ngày{" "}
+                    {selectedDate}
+                  </span>
+                </div>
+                <div className="appointment-details">
+                  {selectedDateAppointments.map((slot, index) => (
+                    <div key={index} className="appointment-slot">
+                      <span className="appointment-time">{slot.time}</span>
+                      <span className="appointment-name">
+                        {slot.customer_name}
+                      </span>
+                      <span className={`status-badge ${slot.status}`}>
+                        {slot.status === "pending"
+                          ? "⏳ Chờ"
+                          : "✅ Đã xác nhận"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {selectedDate && (
               <div className="schedule-form">
-                <h3>Chỉnh sửa lịch ngày {selectedDate}</h3>
+                <h3>
+                  Chỉnh sửa lịch ngày{" "}
+                  {dateUtils.convertDateFormat(selectedDate)}
+                </h3>
+
+                {/* Hiển thị cảnh báo nếu có appointments */}
+                {selectedDateAppointments.length > 0 && (
+                  <div className="alert alert-warning">
+                    <strong>⚠️ Cảnh báo:</strong> Có{" "}
+                    {selectedDateAppointments.length} lịch hẹn đang chờ. Thay
+                    đổi lịch có thể ảnh hưởng đến các lịch hẹn này.
+                  </div>
+                )}
+
                 <div className="form-group">
                   <label>Trạng thái:</label>
+
+                  {/* QUAN TRỌNG: Sửa logic kiểm tra đơn giản */}
                   <div className="toggle-group">
                     <button
+                      type="button"
                       className={`toggle-btn ${
                         scheduleForm.is_available ? "active" : ""
                       }`}
-                      onClick={() =>
-                        setScheduleForm((p) => ({ ...p, is_available: true }))
-                      }
+                      onClick={() => {
+                        console.log("✅ Chuyển sang LÀM VIỆC");
+                        setScheduleForm((prev) => ({
+                          ...prev,
+                          is_available: true,
+                          // Nếu chuyển từ nghỉ sang làm việc, khôi phục slots
+                          available_slots:
+                            prev.available_slots.length === 0
+                              ? allTimeSlots
+                              : prev.available_slots,
+                        }));
+                      }}
                     >
                       Làm việc
                     </button>
                     <button
+                      type="button"
                       className={`toggle-btn ${
                         !scheduleForm.is_available ? "active" : ""
                       }`}
-                      onClick={() =>
-                        setScheduleForm((p) => ({
-                          ...p,
+                      onClick={() => {
+                        console.log("❌ Chuyển sang NGHỈ");
+                        setScheduleForm((prev) => ({
+                          ...prev,
                           is_available: false,
-                          available_slots: [],
-                        }))
-                      }
+                          available_slots: [], // Nghỉ = không có slot nào
+                        }));
+                      }}
                     >
                       Nghỉ
                     </button>
                   </div>
                 </div>
 
-                {scheduleForm.is_available && (
+                {/* Chỉ hiển thị time slots khi ở chế độ LÀM VIỆC */}
+                {scheduleForm.is_available ? (
                   <div className="form-group">
-                    <label>Chọn khung giờ làm việc:</label>
-                    <div className="time-slots-grid">
-                      {allTimeSlots.map((time) => (
-                        <button
-                          key={time}
-                          className={`time-slot ${
-                            scheduleForm.available_slots.includes(time)
-                              ? "selected"
-                              : ""
-                          }`}
-                          onClick={() => handleTimeSlotToggle(time)}
-                        >
-                          {time}
-                        </button>
-                      ))}
+                    <label>
+                      Chọn khung giờ làm việc (mặc định tất cả, click để bỏ
+                      chọn):
+                    </label>
+
+                    {allTimeSlots && allTimeSlots.length > 0 ? (
+                      <>
+                        <div className="time-slots-grid">
+                          {allTimeSlots.map((time, index) => {
+                            const hasAppointment =
+                              selectedDateAppointments.some(
+                                (slot) => slot.time === time
+                              );
+
+                            // Logic ĐƠN GIẢN:
+                            // - isActive = slot KHÔNG bị admin bỏ chọn
+                            // - scheduleForm.available_slots = giờ bị admin bỏ
+                            const isActive =
+                              scheduleForm.available_slots?.includes(time);
+
+                            return (
+                              <button
+                                key={index}
+                                type="button"
+                                className={`time-slot ${
+                                  isActive ? "selected" : "inactive"
+                                } ${hasAppointment ? "has-appointment" : ""}`}
+                                onClick={() => {
+                                  if (hasAppointment) {
+                                    alert(
+                                      `Không thể thay đổi giờ ${time} vì đã có lịch hẹn!`
+                                    );
+                                    return;
+                                  }
+
+                                  setScheduleForm((prev) => {
+                                    const currentExcluded =
+                                      prev.available_slots || [];
+
+                                    if (currentExcluded.includes(time)) {
+                                      // Nếu time đang bị bỏ chọn → cho phép lại
+                                      const newExcluded =
+                                        currentExcluded.filter(
+                                          (t) => t !== time
+                                        );
+                                      return {
+                                        ...prev,
+                                        available_slots: newExcluded,
+                                      };
+                                    } else {
+                                      // Nếu time đang active → bỏ chọn
+                                      const newExcluded = [
+                                        ...currentExcluded,
+                                        time,
+                                      ].sort();
+                                      return {
+                                        ...prev,
+                                        available_slots: newExcluded,
+                                      };
+                                    }
+                                  });
+                                }}
+                                title={
+                                  hasAppointment
+                                    ? `Đã có lịch hẹn (${
+                                        selectedDateAppointments.find(
+                                          (s) => s.time === time
+                                        )?.customer_name
+                                      })`
+                                    : isActive
+                                    ? "Đang làm việc - Nhấn để bỏ chọn (nghỉ giờ này)"
+                                    : "Đang nghỉ - Nhấn để chọn lại (làm việc giờ này)"
+                                }
+                                disabled={hasAppointment}
+                              >
+                                {time}
+                                {hasAppointment && " 📌"}
+                                {!isActive && !hasAppointment && " ❌"}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {selectedDateAppointments.length > 0 && (
+                          <div className="appointment-note">
+                            <small>
+                              📌 = Đã có lịch hẹn (không thể thay đổi)
+                            </small>
+                          </div>
+                        )}
+
+                        {/* Thông tin hiển thị
+                        <div className="selected-slots-info">
+                          <p>
+                            <strong>Giờ làm việc:</strong>{" "}
+                            {scheduleForm.available_slots?.length || 0} /{" "}
+                            {allTimeSlots.length} giờ
+                            {scheduleForm.available_slots?.length > 0 && (
+                              <span className="slots-list">
+                                {" "}
+                                (Nghỉ: {scheduleForm.available_slots.join(", ")}
+                                )
+                              </span>
+                            )}
+                          </p>
+                          <button
+                            type="button"
+                            className="btn-select-all"
+                            onClick={() => {
+                              // Làm việc cả ngày = không bỏ slot nào
+                              setScheduleForm((prev) => ({
+                                ...prev,
+                                available_slots: [],
+                              }));
+                            }}
+                          >
+                            ✅ Làm việc tất cả
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-clear-all"
+                            onClick={() => {
+                              // Nghỉ cả ngày = bỏ tất cả slot
+                              setScheduleForm((prev) => ({
+                                ...prev,
+                                available_slots: [...allTimeSlots],
+                              }));
+                            }}
+                          >
+                            ❌ Nghỉ tất cả
+                          </button>
+                        </div> */}
+                      </>
+                    ) : (
+                      <div className="alert alert-warning">
+                        <strong>⚠️ Không có giờ làm việc mặc định!</strong>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="day-off-notice">
+                    <div className="alert alert-info">
+                      <strong>📅 Ngày nghỉ:</strong> Không làm việc
                     </div>
                   </div>
                 )}
@@ -520,7 +840,6 @@ const AdminPanel = () => {
           </div>
         )}
 
-        {/* SERVICES TAB */}
         {activeTab === "services" && (
           <div className="tab-content">
             <div className="services-management">
@@ -592,22 +911,6 @@ const AdminPanel = () => {
                     </div>
                   </div>
 
-                  <div className="form-group">
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={serviceForm.isActive}
-                        onChange={(e) =>
-                          setServiceForm({
-                            ...serviceForm,
-                            isActive: e.target.checked,
-                          })
-                        }
-                      />{" "}
-                      Hiển thị dịch vụ
-                    </label>
-                  </div>
-
                   <div className="form-actions">
                     <button
                       type="submit"
@@ -654,7 +957,7 @@ const AdminPanel = () => {
                             service.isActive ? "active" : "inactive"
                           }`}
                         >
-                          {service.isActive ? "✅ Đang hiển thị" : "❌ Đã ẩn"}
+                          {service.isActive ? "Hiển thị" : "Ẩn"}
                         </span>
                       </div>
                     </div>
@@ -683,7 +986,6 @@ const AdminPanel = () => {
           </div>
         )}
 
-        {/* APPOINTMENTS TAB */}
         {activeTab === "appointments" && (
           <div className="tab-content">
             <div className="appointments-section">
@@ -724,96 +1026,6 @@ const AdminPanel = () => {
                 <p className="no-appointments">Chưa có lịch hẹn nào</p>
               )}
             </div>
-          </div>
-        )}
-
-        {/* CONTENT TAB */}
-        {activeTab === "content" && (
-          <div className="tab-content">
-            <h3>Quản lý nội dung trang web</h3>
-
-            <div className="form-group">
-              <label>Tiêu đề (Hero title)</label>
-              <input
-                type="text"
-                value={content.title || ""}
-                onChange={(e) =>
-                  setContent({ ...content, title: e.target.value })
-                }
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Mô tả ngắn</label>
-              <textarea
-                value={content.subtitle || ""}
-                onChange={(e) =>
-                  setContent({ ...content, subtitle: e.target.value })
-                }
-              />
-            </div>
-
-            <div className="form-group">
-              <label>About (giới thiệu)</label>
-              <textarea
-                value={content.about || ""}
-                onChange={(e) =>
-                  setContent({ ...content, about: e.target.value })
-                }
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Banner (ảnh)</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleBannerUpload}
-              />
-              {uploading && <div>Uploading...</div>}
-              {content.banner && (
-                <div>
-                  <img
-                    src={`http://localhost:5000${content.banner}`}
-                    alt="banner"
-                    style={{ maxWidth: "320px", marginTop: "8px" }}
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="form-group">
-              <label>Gallery (upload nhiều ảnh)</label>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleGalleryUpload}
-              />
-              {content.gallery && content.gallery.length > 0 && (
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 8,
-                    marginTop: 8,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  {content.gallery.map((g, i) => (
-                    <img
-                      key={i}
-                      src={`http://localhost:5000${g}`}
-                      alt={`g${i}`}
-                      style={{ width: 100, height: 80, objectFit: "cover" }}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <button className="save-btn" onClick={saveContent}>
-              Lưu nội dung
-            </button>
           </div>
         )}
       </div>

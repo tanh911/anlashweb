@@ -35,18 +35,13 @@ const ListImageUploader = ({
     setError("");
 
     try {
-      console.log("🔄 Bắt đầu upload ảnh vào list:", file.name);
-
       const downloadURL = await uploadToCloudinary(file);
-      console.log("✅ Upload list ảnh thành công:", downloadURL);
 
       // Cập nhật danh sách ảnh
       const currentImages = Array.isArray(existingImages) ? existingImages : [];
       const updatedImages = [...currentImages, downloadURL];
 
-      console.log("🖼️ Updated list images:", updatedImages);
       await saveImageList(updatedImages); // Hàm lưu list ảnh
-      console.log("✅ Đã lưu list images");
 
       if (onUploadSuccess) {
         onUploadSuccess(updatedImages);

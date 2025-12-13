@@ -71,14 +71,11 @@
 /* ========== CALENDAR SECTION ========== */
 .calendar-section {
   flex: 1;
-  min-width: 350px;
 }
 
 .calendar {
   background: #fff;
-  padding: 25px;
   border-radius: 20px;
-  margin-bottom: 30px;
 }
 
 .calendar-weekdays {
@@ -165,6 +162,7 @@
   border-radius: 20px;
   box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
   margin-bottom: 30px;
+  height: 360px;
 }
 
 .time-selection h3 {
@@ -218,7 +216,6 @@
 
 .no-slots-message {
   margin-top: 15px;
-  padding: 15px;
   background: #fff3cd;
   border: 1px solid #ffeaa7;
   border-radius: 12px;
@@ -446,8 +443,9 @@
     flex-direction: column;
     gap: 40px;
   }
-
-  .calendar-section,
+  .calendar-section {
+    background-color: red;
+  }
   .booking-section {
     min-width: 100%;
   }

@@ -38,18 +38,10 @@ function PostDetail() {
     const fetchPostDetail = async () => {
       try {
         setLoading(true);
-        console.log(
-          "🔄 Fetching post from:",
-          `${API_BASE}/content/posts/${id}`
-        );
 
         // Gọi API để lấy chi tiết bài viết
         const response = await fetch(`${API_BASE}/content/posts/${id}`);
         const data = await response.json();
-
-        console.log("📡 API Response:", data);
-        console.log("✅ Response success:", data.success);
-        console.log("📄 Post data:", data.data);
 
         if (response.ok && data.success) {
           setPost(data.data); // SỬA: data.data thay vì data
@@ -74,9 +66,6 @@ function PostDetail() {
   };
 
   // Debug state
-  console.log("📊 Current post state:", post);
-  console.log("⏳ Loading state:", loading);
-  console.log("❌ Error state:", error);
 
   if (loading) {
     return (

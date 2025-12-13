@@ -77,7 +77,6 @@ function App() {
         (_, index) => index !== imageIndex
       );
       await saveSliderImages(newSliderImages);
-      console.log("Ảnh đã được xóa thành công");
     } catch (error) {
       console.error("Lỗi khi xóa ảnh:", error);
       alert("Không thể xóa ảnh: " + error.message);
