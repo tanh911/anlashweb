@@ -7,7 +7,10 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "clean-indexes": "node scripts/cleanIndexes.js",
+    "create-indexes": "node scripts/createAllIndexes.js",
+    "reset-indexes": "npm run clean-indexes && npm run create-indexes"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

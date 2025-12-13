@@ -49,7 +49,68 @@ const getAppointment = async (req, res, next) => {
     next(error);
   }
 };
+// @desc    Check available slots for a specific date
+// @route   GET /api/appointments/availability/:date
+// @access  Public
+const checkAvailability = async (req, res, next) => {
+  try {
+    const { date } = req.params;
 
+    if (!date) {
+      return res.status(400).json({
+        success: false,
+        error: "Vui lòng cung cấp ngày (định dạng YYYY-MM-DD)",
+      });
+    }
+
+    // Get admin schedule for the date
+    const schedule = await AdminSchedule.findOne({ date });
+
+    if (!schedule) {
+      return res.json({
+        success: true,
+        message: "Không có lịch làm việc cho ngày này",
+        data: {
+          date,
+          available_slots: [],
+          booked_slots: [],
+          all_slots: [],
+        },
+      });
+    }
+
+    // Get all appointments for this date with pending or confirmed status
+    const appointments = await Appointment.find({
+      date,
+      status: { $in: ["pending", "confirmed"] },
+    }).select("time status customer_name");
+
+    // Get booked times
+    const bookedSlots = appointments.map((app) => ({
+      time: app.time,
+      status: app.status,
+      customer_name: app.customer_name,
+    }));
+
+    // Calculate available slots
+    const availableSlots = schedule.available_slots.filter(
+      (slot) => !appointments.some((app) => app.time === slot)
+    );
+
+    res.json({
+      success: true,
+      data: {
+        date,
+        available_slots: availableSlots,
+        booked_slots: bookedSlots,
+        all_slots: schedule.available_slots,
+        schedule_exists: true,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 // @desc    Create new appointment
 // @route   POST /api/appointments
 // @access  Public
@@ -228,4 +289,5 @@ export {
   deleteAppointment,
   confirmAppointment,
   cancelAppointment,
+  checkAvailability,
 };

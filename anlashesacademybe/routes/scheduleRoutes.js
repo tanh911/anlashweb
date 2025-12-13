@@ -1,40 +1,33 @@
+// routes/scheduleRoutes.js
 import express from "express";
 import {
+  initDefaultSchedules,
   getMonthlySlots,
   getDailySlots,
   getSchedules,
   createUpdateSchedule,
   deleteSchedule,
+  resetSchedule,
+  batchUpdateSchedules,
+  getHealth,
+  updateTimeSlots,
 } from "../controllers/scheduleController.js";
-import { validateSchedule } from "../middleware/validation.js";
-console.log("✅ Schedule routes mounted");
+import { authMiddleware, adminMiddleware } from "../middleware/auth.js";
+import { get } from "mongoose";
 
 const router = express.Router();
 
+// Public routes
+router.get("/health", getHealth);
 router.get("/available/date/:date", getDailySlots);
 router.get("/available/:year/:month", getMonthlySlots);
-// router.get(
-//   "/available/:year/:month",
-//   (req, res, next) => {
-//     console.log("🔥 Called: /available/:year/:month");
-//     next();
-//   },
-//   getMonthlySlots
-// );
 
-// router.get(
-//   "/available/date/:date",
-//   (req, res, next) => {
-//     console.log("🔥 Called: /available/date/:date");
-//     next();
-//   },
-//   getDailySlots
-// );
-router
-  .route("/")
-  .get(getSchedules)
-  .post(validateSchedule, createUpdateSchedule);
-
+// Protected Admin routes
+router.post("/init", initDefaultSchedules);
+router.get("/", getSchedules);
+router.post("/", createUpdateSchedule);
 router.delete("/:date", deleteSchedule);
-
+router.post("/reset/:date", resetSchedule);
+router.post("/batch", batchUpdateSchedules);
+router.post("/settings/time-slots", updateTimeSlots);
 export default router;

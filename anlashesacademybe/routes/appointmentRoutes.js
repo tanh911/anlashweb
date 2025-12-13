@@ -7,6 +7,7 @@ import {
   deleteAppointment,
   confirmAppointment,
   cancelAppointment,
+  checkAvailability,
 } from "../controllers/appointmentController.js";
 import { validateAppointment } from "../middleware/validation.js";
 
@@ -25,5 +26,5 @@ router
 
 router.put("/:id/confirm", confirmAppointment);
 router.put("/:id/cancel", cancelAppointment);
-
+router.get("/available/:date", checkAvailability);
 export default router;

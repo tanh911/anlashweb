@@ -41,15 +41,7 @@ const appointmentSchema = new mongoose.Schema(
     },
     service_type: {
       type: String,
-      default: "General",
-      enum: [
-        "Haircut",
-        "Hair Color",
-        "Hair Treatment",
-        "Styling",
-        "General",
-        "Other",
-      ],
+      required: [true, "Vui lòng thêm loại dịch vụ"],
     },
     status: {
       type: String,
