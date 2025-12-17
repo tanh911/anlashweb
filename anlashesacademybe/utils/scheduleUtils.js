@@ -37,8 +37,6 @@ export const isHoliday = (dateString) => {
 // Lấy giờ làm mặc định theo ngày (ASYNC)
 export const getDefaultWorkingHours = async (dateString) => {
   try {
-    const timeSlots = await getTimeSlotsFromDB();
-
     if (isHoliday(dateString)) {
       return [];
     }
@@ -47,12 +45,6 @@ export const getDefaultWorkingHours = async (dateString) => {
     const dayOfWeek = date.getDay();
 
     // Nếu có custom time slots từ DB
-    if (timeSlots !== DEFAULT_WORKING_HOURS) {
-      if (dayOfWeek === 0 || dayOfWeek === 6) {
-        return [];
-      }
-      return [...timeSlots];
-    }
 
     // Fallback logic cũ
     const WORK_HOURS_CONFIG = {

@@ -1,6 +1,7 @@
 // controllers/scheduleController.js
 import AdminSchedule from "../models/AdminSchedule.js";
 import Appointment from "../models/Appointment.js";
+import Staff from "../models/Staff.js";
 import {
   isHoliday,
   createDefaultSchedule,
@@ -160,9 +161,6 @@ const getMonthlySlots = async (req, res, next) => {
   }
 };
 
-// @desc    Lấy lịch làm việc theo ngày
-// @route   GET /api/schedule/available/date/:date
-// @access  Public
 const getDailySlots = async (req, res, next) => {
   try {
     let date = req.params.date.trim();
@@ -189,6 +187,7 @@ const getDailySlots = async (req, res, next) => {
       });
     }
 
+    // 1. Lấy schedule cho ngày
     const schedule = await AdminSchedule.findOne({ date });
     let finalSchedule;
 
@@ -206,11 +205,48 @@ const getDailySlots = async (req, res, next) => {
       finalSchedule = schedule;
     }
 
+    // 2. Lấy tất cả nhân viên active
+    const allStaff = await Staff.find({ isActive: true }).select("_id name");
+    const totalStaff = allStaff.length;
+
+    // 3. Lấy tất cả appointments trong ngày
     const appointments = await Appointment.find({
       date,
       status: { $in: ["pending", "confirmed"] },
+    }).select("time staff_id");
+
+    // 4. Tính toán cho từng slot
+    const slotDetails = finalSchedule.available_slots.map((slot) => {
+      // Lấy appointments trong slot này
+      const appointmentsInSlot = appointments.filter(
+        (app) => app.time === slot
+      );
+
+      // Danh sách staff đã bận trong slot này
+      const busyStaffIds = appointmentsInSlot
+        .map((app) => app.staff_id?.toString())
+        .filter(Boolean);
+
+      // Số nhân viên còn trống
+      const availableStaffCount = Math.max(0, totalStaff - busyStaffIds.length);
+      const isSlotAvailable = availableStaffCount > 0;
+
+      return {
+        time: slot,
+        is_available: isSlotAvailable,
+        available_staff_count: availableStaffCount,
+        total_staff: totalStaff,
+        busy_staff_count: busyStaffIds.length,
+        booked_appointments: appointmentsInSlot.length,
+      };
     });
 
+    // 5. Lọc các slot còn trống (còn nhân viên)
+    const freeSlots = slotDetails
+      .filter((slot) => slot.is_available)
+      .map((slot) => slot.time);
+
+    // 6. Format response (giữ backward compatibility)
     const bookedSlots = appointments.map((app) => app.time);
     const availableSlots = finalSchedule.is_available
       ? finalSchedule.available_slots
@@ -220,9 +256,16 @@ const getDailySlots = async (req, res, next) => {
       success: true,
       data: {
         date,
+        // Các field cũ (cho compatibility)
         availableSlots,
         bookedSlots,
-        freeSlots: availableSlots.filter((slot) => !bookedSlots.includes(slot)),
+        freeSlots, // CHỈ gồm các slot CÒN NHÂN VIÊN TRỐNG
+
+        // Các field mới
+        slot_details: slotDetails,
+        total_staff: totalStaff,
+
+        // Các field khác
         is_available: finalSchedule.is_available,
         custom_slots: finalSchedule.custom_slots,
         notes: finalSchedule.notes,

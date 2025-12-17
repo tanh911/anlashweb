@@ -9,6 +9,7 @@ const appointmentSchema = new mongoose.Schema(
         /^\d{4}-\d{2}-\d{2}$/,
         "Định dạng ngày không hợp lệ (YYYY-MM-DD)",
       ],
+      index: true,
     },
     time: {
       type: String,
@@ -17,6 +18,7 @@ const appointmentSchema = new mongoose.Schema(
         /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/,
         "Định dạng giờ không hợp lệ (HH:MM)",
       ],
+      index: true,
     },
     customer_name: {
       type: String,
@@ -52,6 +54,11 @@ const appointmentSchema = new mongoose.Schema(
       type: String,
       maxlength: [500, "Ghi chú không được vượt quá 500 ký tự"],
     },
+    staff_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Staff",
+      required: [true, "Vui lòng chọn nhân viên"],
+    },
   },
   {
     timestamps: true,
@@ -59,12 +66,25 @@ const appointmentSchema = new mongoose.Schema(
 );
 
 // Compound index để tránh double booking
+// appointmentSchema.index(
+//   { date: 1, time: 1 },
+//   {
+//     unique: true,
+//     partialFilterExpression: { status: { $in: ["pending", "confirmed"] } },
+//   }
+// );
 appointmentSchema.index(
-  { date: 1, time: 1 },
+  {
+    date: 1,
+    time: 1,
+    staff_id: 1,
+  },
   {
     unique: true,
-    partialFilterExpression: { status: { $in: ["pending", "confirmed"] } },
+    partialFilterExpression: {
+      status: { $in: ["pending", "confirmed"] },
+      staff_id: { $exists: true, $ne: null },
+    },
   }
 );
-
 export default mongoose.model("Appointment", appointmentSchema);
