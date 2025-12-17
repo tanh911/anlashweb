@@ -1,8 +1,9 @@
 // AdminPanel.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import "./AdminPanel.css";
 import { dateUtils } from "../utils/dateUtils";
+import StaffForm from "../component/StaffForm.jsx";
 const API_BASE = import.meta.env.VITE_API_URL;
 
 const AUTH_HEADER = { Authorization: "Bearer admin-secret-token" };
@@ -30,6 +31,7 @@ const AdminPanel = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("schedule");
+  const [staffNames, setStaffNames] = useState({});
   const [services, setServices] = useState([]);
   const [serviceForm, setServiceForm] = useState({
     name: "",
@@ -50,6 +52,10 @@ const AdminPanel = () => {
   const [appointmentsByDate, setAppointmentsByDate] = useState({});
   const [selectedDateAppointments, setSelectedDateAppointments] = useState([]);
 
+  const [staffList, setStaffList] = useState([]);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newStaff, setNewStaff] = useState({ name: "", _id: null });
+  const [staffLoading, setStaffLoading] = useState(false);
   useEffect(() => {
     fetchSchedules();
     fetchAppointments();
@@ -63,6 +69,71 @@ const AdminPanel = () => {
       timeSlotFetch(selectedDate);
     }
   }, [selectedDate]);
+
+  const staffListFetch = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/staff`, {
+        headers: AUTH_HEADER,
+      });
+      if (response.data.success) {
+        setStaffList(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching staff list:", error);
+      setStaffList([]);
+    }
+  };
+
+  useEffect(() => {
+    staffListFetch();
+  }, []);
+  useEffect(() => {
+    const fetchAllStaffNames = async () => {
+      const uniqueStaffIds = [
+        ...new Set(appointments.map((app) => app.staff_id).filter(Boolean)),
+      ];
+
+      // Kiểm tra xem đã fetch hết chưa
+      const missingStaffIds = uniqueStaffIds.filter((id) => !staffNames[id]);
+
+      if (missingStaffIds.length === 0) return;
+
+      try {
+        // Fetch từng staff một
+        const promises = missingStaffIds.map(async (staffId) => {
+          try {
+            const response = await axios.get(`${API_BASE}/staff/${staffId}`, {
+              headers: AUTH_HEADER,
+            });
+            if (response.data.success && response.data.data) {
+              return { id: staffId, name: response.data.data.name };
+            }
+          } catch (error) {
+            console.error(`Error fetching staff ${staffId}:`, error);
+            return { id: staffId, name: "Unknown Staff" };
+          }
+        });
+
+        const results = await Promise.allSettled(promises);
+        const newStaffNames = {};
+
+        results.forEach((result) => {
+          if (result.status === "fulfilled" && result.value) {
+            newStaffNames[result.value.id] = result.value.name;
+          }
+        });
+
+        setStaffNames((prev) => ({ ...prev, ...newStaffNames }));
+      } catch (error) {
+        console.error("Error fetching staff names:", error);
+      }
+    };
+
+    if (appointments.length > 0) {
+      fetchAllStaffNames();
+    }
+  }, [appointments]);
+
   // Thêm useEffect để cập nhật allTimeSlots khi chọn ngày
   const timeSlotFetch = async (date) => {
     try {
@@ -96,6 +167,7 @@ const AdminPanel = () => {
       setAllTimeSlots([]);
     }
   };
+
   const loadAppointmentsForMonth = async () => {
     try {
       const year = currentDate.getFullYear();
@@ -112,11 +184,21 @@ const AdminPanel = () => {
   const checkAppointmentsForDate = async (date) => {
     try {
       const response = await axios.get(
-        `${API_BASE}/appointments/available/${date}`
+        `${API_BASE}/appointments/availability/${date}`
       );
 
       if (response.data.success && response.data.data) {
-        const bookedSlots = response.data.data.booked_slots || [];
+        const data = response.data.data;
+        const bookedSlots = data.slot_details
+          ? data.slot_details
+              .filter((slot) => slot.busy_staff_count > 0) // Slot có nhân viên bận
+              .map((slot) => ({
+                time: slot.time,
+                booked_count: slot.busy_staff_count,
+                available_count: slot.available_staff_count,
+                total_staff: slot.total_staff,
+              }))
+          : [];
 
         // Lưu vào state theo ngày
         setAppointmentsByDate((prev) => ({
@@ -444,27 +526,213 @@ const AdminPanel = () => {
     "Tháng 12",
   ];
 
+  const handleEditStaff = async (staff) => {
+    try {
+      // Hiển thị form với dữ liệu nhân viên hiện tại
+      setNewStaff({
+        _id: staff._id,
+        name: staff.name,
+      });
+      setShowAddForm(true);
+
+      // Có thể thêm animation hoặc focus vào form
+      setTimeout(() => {
+        const nameInput = document.querySelector(
+          '.modal-content input[name="name"]'
+        );
+        if (nameInput) {
+          nameInput.focus();
+          nameInput.select();
+        }
+      }, 100);
+    } catch (error) {
+      console.error("Lỗi khi mở form chỉnh sửa:", error);
+      alert("Có lỗi xảy ra khi mở form chỉnh sửa");
+    }
+  };
+
+  // Function 2: Xử lý xóa nhân viên
+  const handleDeleteStaff = async (staffId) => {
+    // Hiển thị hộp thoại xác nhận
+    const isConfirmed = window.confirm(
+      "Bạn có chắc chắn muốn xóa nhân viên này?\n\n" +
+        "Hành động này không thể hoàn tác."
+    );
+
+    if (!isConfirmed) return;
+
+    try {
+      setStaffLoading(true);
+
+      // Gọi API xóa nhân viên
+      const response = await axios.delete(`${API_BASE}/staff/${staffId}`, {
+        headers: AUTH_HEADER,
+      });
+
+      if (response.data.success) {
+        // Cập nhật danh sách nhân viên (loại bỏ nhân viên đã xóa)
+        setStaffList((prev) => prev.filter((staff) => staff._id !== staffId));
+
+        // Hiển thị thông báo thành công
+        alert("✅ Đã xóa nhân viên thành công!");
+
+        // Có thể thêm hiệu ứng visual
+        const deletedRow = document.querySelector(
+          `[data-staff-id="${staffId}"]`
+        );
+        if (deletedRow) {
+          deletedRow.style.transition = "all 0.3s ease";
+          deletedRow.style.opacity = "0";
+          deletedRow.style.transform = "translateX(-100px)";
+
+          setTimeout(() => {
+            // Element sẽ được xóa khỏi DOM bởi React re-render
+          }, 300);
+        }
+      }
+    } catch (error) {
+      console.error("Lỗi khi xóa nhân viên:", error);
+
+      // Xử lý các loại lỗi khác nhau
+      if (error.response) {
+        switch (error.response.status) {
+          case 404:
+            alert("❌ Không tìm thấy nhân viên để xóa");
+            break;
+          case 400:
+            alert(
+              "❌ " +
+                (error.response.data.message || "Không thể xóa nhân viên này")
+            );
+            break;
+          case 500:
+            alert("⚠️ Lỗi server, vui lòng thử lại sau");
+            break;
+          default:
+            alert(
+              "❌ Có lỗi xảy ra: " +
+                (error.response.data.message || error.message)
+            );
+        }
+      } else if (error.request) {
+        alert("⚠️ Không thể kết nối đến server");
+      } else {
+        alert("❌ Có lỗi xảy ra: " + error.message);
+      }
+    } finally {
+      setStaffLoading(false);
+    }
+  };
+
+  const handleSaveStaff = async (staffData) => {
+    try {
+      setStaffLoading(true);
+
+      let response;
+      if (staffData._id) {
+        // Update existing staff
+        response = await axios.put(
+          `${API_BASE}/staff/${staffData._id}`,
+          {
+            name: staffData.name,
+          },
+          {
+            headers: AUTH_HEADER,
+          }
+        );
+
+        if (response.data.success) {
+          // Update in list
+          setStaffList((prev) =>
+            prev.map((staff) =>
+              staff._id === staffData._id ? response.data.data : staff
+            )
+          );
+          alert("Cập nhật nhân viên thành công!");
+        }
+      } else {
+        // Create new staff
+        response = await axios.post(
+          `${API_BASE}/staff/create`,
+          {
+            name: staffData.name,
+          },
+          {
+            headers: AUTH_HEADER,
+          }
+        );
+
+        if (response.data.success) {
+          // Add to list
+          setStaffList((prev) => [...prev, response.data.data]);
+          alert("Thêm nhân viên mới thành công!");
+        }
+      }
+
+      // Refresh staff list
+      await staffListFetch();
+      setShowAddForm(false);
+      setNewStaff({ name: "", _id: null });
+    } catch (error) {
+      console.error("Lỗi khi lưu nhân viên:", error);
+      alert(
+        "Có lỗi xảy ra: " + (error.response?.data?.message || error.message)
+      );
+    } finally {
+      setStaffLoading(false);
+    }
+  };
+  const handleCloseStaffForm = useCallback(() => {
+    setShowAddForm(false);
+    setNewStaff({ name: "", _id: null });
+  }, []);
+
+  // const handleStaffChange = useCallback((data) => {
+  //   setNewStaff(data);
+  // }, []);
+  const handleDeleteAppointment = async (appointmentId) => {
+    if (!window.confirm("Bạn có chắc muốn hủy lịch hẹn này?")) return;
+    try {
+      await axios.delete(`${API_BASE}/appointments/${appointmentId}`, {
+        headers: AUTH_HEADER,
+      });
+      alert("Đã hủy lịch hẹn!");
+      fetchAppointments();
+      // Refresh selected date appointments
+      if (selectedDate) {
+        checkAppointmentsForDate(selectedDate);
+      }
+    } catch (error) {
+      alert("Có lỗi xảy ra!", error);
+    }
+  };
   return (
     <div className="admin-container">
-      <h2>Trang quản lý Admin</h2>
       <div className="admin-tabs">
+        <h2>Trang Quản Lý Admin</h2>
         <button
           className={`tab-btn ${activeTab === "schedule" ? "active" : ""}`}
           onClick={() => setActiveTab("schedule")}
         >
-          📅 Quản lý lịch làm việc
+          📅 Quản Lý Lịch Làm Việc
         </button>
         <button
           className={`tab-btn ${activeTab === "services" ? "active" : ""}`}
           onClick={() => setActiveTab("services")}
         >
-          💇 Quản lý dịch vụ
+          💇 Quản Lý Dịch Vụ
         </button>
         <button
           className={`tab-btn ${activeTab === "appointments" ? "active" : ""}`}
           onClick={() => setActiveTab("appointments")}
         >
-          📋 Lịch hẹn
+          📋 Lịch Hẹn
+        </button>
+        <button
+          className={`tab-btn ${activeTab === "staff" ? "active" : ""}`}
+          onClick={() => setActiveTab("staff")}
+        >
+          🧑‍💼Nhân Viên
         </button>
       </div>
 
@@ -956,9 +1224,7 @@ const AdminPanel = () => {
                           className={`service-status ${
                             service.isActive ? "active" : "inactive"
                           }`}
-                        >
-                          {service.isActive ? "Hiển thị" : "Ẩn"}
-                        </span>
+                        ></span>
                       </div>
                     </div>
 
@@ -1000,6 +1266,7 @@ const AdminPanel = () => {
                     </span>
                     <span>💇 {app.service_type}</span>
                     {app.notes && <span>📝 {app.notes}</span>}
+                    {app.staff_id && <span>👨‍💼 {staffNames[app.staff_id]}</span>}
                     <span className="status">Trạng thái: {app.status}</span>
                   </div>
                   <div className="appointment-actions">
@@ -1019,6 +1286,12 @@ const AdminPanel = () => {
                         </button>
                       </>
                     )}
+                    <button
+                      className="delete-btn"
+                      onClick={() => handleDeleteAppointment(app._id)}
+                    >
+                      Hủy lịch
+                    </button>
                   </div>
                 </div>
               ))}
@@ -1026,6 +1299,63 @@ const AdminPanel = () => {
                 <p className="no-appointments">Chưa có lịch hẹn nào</p>
               )}
             </div>
+          </div>
+        )}
+
+        {activeTab === "staff" && (
+          <div className="tab-content">
+            <div className="staff-management">
+              <h3>Quản lý nhân viên</h3>
+              {staffLoading && <p className="loading-text">Đang tải...</p>}
+              <div className="list-staff">
+                {staffList.length === 0 ? (
+                  <p>Chưa có nhân viên nào.</p>
+                ) : (
+                  staffList.map((staff, index) => (
+                    <div key={index} className="staff-card">
+                      <h4>{staff.name}</h4>
+                      <div className="staff-actions">
+                        <button
+                          className="edit-btn"
+                          onClick={() => handleEditStaff(staff)}
+                        >
+                          Sửa
+                        </button>
+                        <button
+                          className="delete-btn"
+                          onClick={() => handleDeleteStaff(staff._id)}
+                        >
+                          Xóa
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <>
+                <div className="staff-actions">
+                  <button
+                    className="add-staff-btn"
+                    onClick={() => {
+                      setNewStaff({ name: "", _id: null }); // Reset form
+                      setShowAddForm(true);
+                    }}
+                  >
+                    Thêm nhân viên mới
+                  </button>
+                </div>
+              </>
+            </div>
+
+            {/* Modal thêm nhân viên */}
+            {showAddForm && (
+              <StaffForm
+                staffData={newStaff}
+                onSave={handleSaveStaff}
+                onClose={handleCloseStaffForm}
+              />
+            )}
           </div>
         )}
       </div>

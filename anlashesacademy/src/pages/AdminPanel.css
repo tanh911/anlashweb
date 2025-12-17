@@ -1,109 +1,44 @@
-/* ========== Tổng thể ========== */
+/* ========== VARIABLES & RESET ========== */
+:root {
+  --primary-color: #007bff;
+  --success-color: #28a745;
+  --danger-color: #dc3545;
+  --warning-color: #ffc107;
+  --info-color: #17a2b8;
+  --light-color: #f8f9fa;
+  --dark-color: #343a40;
+  --border-radius: 16px;
+  --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --transition: all 0.3s ease;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* ========== ADMIN CONTAINER ========== */
 .admin-container {
   max-width: 1200px;
   margin: 40px auto;
   padding: 20px;
   font-family: "Inter", sans-serif;
   color: #333;
+  display: flex;
+  gap: 20px;
 }
 
+@media (max-width: 900px) {
+  .admin-container {
+    flex-direction: column;
+    margin: 20px auto;
+    padding: 15px;
+  }
+}
+
+/* ========== ADMIN HEADER ========== */
 .admin-header {
   text-align: center;
   margin-bottom: 30px;
-}
-.calendar-nav {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 100%; /* Đảm bảo chiều cao đầy đủ */
-}
-.edit-btn {
-  border: 1px solid;
-  padding: 6px 15px;
-  border-radius: 10px;
-  margin-right: 10px;
-}
-/* ====== ADMIN TABS (thanh điều hướng) ====== */
-.admin-tabs {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 20px;
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-  margin-bottom: 30px;
-  top: 0;
-  z-index: 10;
-  width: 535px; /* ← thêm width cố định */
-  min-width: 535px; /* ← đảm bảo không nhỏ hơn */
-  max-width: 535px; /* ← đảm bảo không lớn hơn */
-}
-
-/* ====== Nút từng tab ====== */
-.tab-btn {
-  position: relative;
-  padding: 16px 5px;
-  background: #f8f9fa;
-  border: 2px solid transparent;
-  border-radius: 12px;
-  color: #495057;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 15px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.3s ease;
-  width: 240px;
-  justify-content: center;
-}
-
-/* Hiệu ứng hover */
-.tab-btn:hover {
-  background: #e9f3ff;
-  color: #007bff;
-  transform: translateY(-2px);
-  box-shadow: 0 3px 10px rgba(0, 123, 255, 0.15);
-}
-
-/* Tab đang chọn */
-
-/* Vạch chỉ định tab active (gạch nhỏ bên dưới) */
-.tab-btn.active::after {
-  content: "";
-  position: absolute;
-  bottom: -6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40%;
-  height: 3px;
-  background: #007bff;
-  border-radius: 2px;
-}
-
-/* Hiệu ứng focus cho accessibility */
-.tab-btn:focus {
-  outline: none;
-  box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.2);
-}
-
-/* ====== Responsive ====== */
-@media (max-width: 768px) {
-  .admin-tabs {
-    flex-direction: column;
-    align-items: stretch;
-    align-items: center;
-  }
-
-  .tab-btn {
-    justify-content: center;
-    font-size: 14px;
-    padding: 10px 20px;
-  }
 }
 
 .admin-header h1 {
@@ -117,149 +52,82 @@
   font-size: 15px;
 }
 
-/* ========== Bố cục chính ========== */
-.admin-content {
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
+/* ========== ADMIN TABS ========== */
+.admin-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  margin-bottom: 30px;
+  width: 535px;
+  min-width: 535px;
+  max-width: 535px;
+  position: sticky;
+  top: 20px;
+  height: fit-content;
+}
+
+.tab-btn {
+  position: relative;
+  padding: 16px 5px;
+  background: var(--light-color);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  color: #495057;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: var(--transition);
+  width: 240px;
+  justify-content: center;
+}
+
+.tab-btn:hover {
+  background: #e9f3ff;
+  color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(0, 123, 255, 0.15);
+}
+
+.tab-btn.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.tab-btn.active::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40%;
+  height: 3px;
+  background: var(--primary-color);
+  border-radius: 2px;
 }
 
 @media (max-width: 900px) {
-  .admin-content {
-    grid-template-columns: 1fr;
-  }
-}
-/* AdminPanel.css */
-
-/* Slot indicator cho appointments */
-.slot-indicator-admin {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.appointment-dot {
-  width: 8px;
-  height: 8px;
-  background: #ff4757;
-  border-radius: 50%;
-  animation: pulse 2s infinite;
-}
-
-.appointment-count {
-  font-size: 10px;
-  font-weight: bold;
-  color: #ff4757;
-}
-
-@keyframes pulse {
-  0% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-  100% {
-    opacity: 1;
+  .admin-tabs {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    position: static;
   }
 }
 
-/* Thông báo appointments */
-.appointment-notification {
-  background: #fff9e6;
-  border: 1px solid #ffd700;
-  border-radius: 8px;
-  padding: 12px;
-  margin: 16px 0;
-}
-
-.notification-content {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.notification-icon {
-  font-size: 20px;
-}
-
-.appointment-details {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid #eee;
-}
-
-.appointment-slot {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 0;
-  border-bottom: 1px dashed #eee;
-}
-
-.appointment-slot:last-child {
-  border-bottom: none;
-}
-
-/* Badge trạng thái */
-.status-badge {
-  padding: 2px 6px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.status-badge.pending {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.status-badge.confirmed {
-  background: #d4edda;
-  color: #155724;
-}
-
-/* Time slot có appointment */
-.time-slot.has-appointment {
-  position: relative;
-  border: 2px solid #ff4757 !important;
-}
-
-.time-slot.has-appointment::after {
-  content: "📌";
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  font-size: 12px;
-}
-
-/* Alert */
-.alert {
-  padding: 12px;
-  border-radius: 6px;
-  margin-bottom: 16px;
-}
-
-.alert-warning {
-  background: #fff3cd;
-  border-left: 4px solid #ffc107;
-  color: #856404;
-}
-
-.alert-info {
-  background: #d1ecf1;
-  border-left: 4px solid #17a2b8;
-  color: #0c5460;
-}
-/* ========== Calendar Section ========== */
+/* ========== CALENDAR SECTION ========== */
 .calendar-section {
   background: #fff;
-  border-radius: 16px;
+  border-radius: var(--border-radius);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  width: 50%; /* ← thêm width cố định */
+  width: 100%;
   padding: 20px;
   margin-bottom: 5px;
 }
@@ -269,6 +137,13 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 100%;
 }
 
 .nav-btn {
@@ -283,11 +158,11 @@
   justify-content: center;
   align-items: center;
   transition: all 0.2s;
-  z-index: 9997;
 }
 
 .nav-btn:hover {
   background: #0056b3;
+  color: white;
 }
 
 .nav-btn:disabled {
@@ -300,7 +175,6 @@
   font-size: 16px;
 }
 
-/* Lưới ngày */
 .calendar {
   margin-top: 10px;
 }
@@ -338,20 +212,21 @@
 }
 
 .calendar-day.today {
-  border: 2px solid #007bff;
+  border: 2px solid var(--primary-color);
 }
 
 .calendar-day.selected {
   background: white;
-  border: 2px solid green;
+  border: 2px solid var(--success-color);
   color: black;
 }
-slot-count .calendar-day.has-schedule {
+
+.calendar-day.has-schedule {
   background: #e8f5e9;
 }
 
 .calendar-day.no-schedule {
-  background: #f8f9fa;
+  background: var(--light-color);
 }
 
 .calendar-day:hover {
@@ -365,33 +240,30 @@ slot-count .calendar-day.has-schedule {
 
 .slot-count {
   font-size: 12px;
-  color: green;
+  color: var(--success-color);
 }
 
-/* ========== Form chỉnh sửa lịch ========== */
-.schedule-form {
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  padding: 20px;
-  width: 535px; /* ← thêm width cố định */
-  min-width: 535px; /* ← đảm bảo không nhỏ hơn */
-  max-width: 535px; /* ← đảm bảo không lớn hơn */
-}
 .slot-indicator-admin {
   position: absolute;
   top: 8px;
   right: 8px;
   width: 6px;
   height: 6px;
-  background-color: red;
+  background-color: var(--danger-color);
   border-radius: 50%;
 }
-.calendar-box {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
+
+/* ========== SCHEDULE FORM ========== */
+.schedule-form {
+  background: #fff;
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+  width: 535px;
+  min-width: 535px;
+  max-width: 535px;
 }
+
 .schedule-form h3 {
   font-size: 18px;
   margin-bottom: 16px;
@@ -401,26 +273,119 @@ slot-count .calendar-day.has-schedule {
 .form-group {
   margin-bottom: 18px;
 }
-/* ========== SERVICE CARD STYLES ========== */
+
+.toggle-group {
+  display: flex;
+  gap: 10px;
+}
+
+.toggle-btn {
+  flex: 1;
+  border: 1px solid #ccc;
+  background: #f9f9f9;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.toggle-btn.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.time-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 10px;
+  margin: 15px 0;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 10px;
+  background: var(--light-color);
+  border-radius: 8px;
+}
+
+.time-slot {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  color: #666;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.time-slot.selected {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.time-slot.inactive {
+  background: var(--light-color);
+  color: #999;
+  border-color: #ddd;
+  text-decoration: line-through;
+}
+
+.time-slot.has-appointment {
+  background: var(--danger-color) !important;
+  color: white !important;
+  border-color: var(--danger-color) !important;
+  cursor: not-allowed !important;
+  opacity: 0.8;
+}
+
+.save-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: var(--success-color);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 16px;
+}
+
+.save-btn:hover {
+  background: #218838;
+  transform: translateY(-2px);
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ========== SERVICE CARDS ========== */
 .service-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
   background: #fff;
-  border-radius: 16px;
+  border-radius: var(--border-radius);
   padding: 20px;
   margin-bottom: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   border: 1px solid #e9ecef;
-  transition: all 0.3s ease;
+  transition: var(--transition);
   position: relative;
   overflow: hidden;
+  animation: slideIn 0.4s ease forwards;
 }
 
 .service-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-  border-color: #007bff;
+  border-color: var(--primary-color);
 }
 
 .service-card::before {
@@ -430,7 +395,7 @@ slot-count .calendar-day.has-schedule {
   top: 0;
   height: 100%;
   width: 4px;
-  background: #007bff;
+  background: var(--primary-color);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -439,7 +404,6 @@ slot-count .calendar-day.has-schedule {
   opacity: 1;
 }
 
-/* Service info section */
 .service-info {
   flex: 1;
   padding-right: 20px;
@@ -482,288 +446,21 @@ slot-count .calendar-day.has-schedule {
   font-weight: 600;
   padding: 6px 12px;
   border-radius: 20px;
-  background: #f8f9fa;
+  transition: var(--transition);
 }
 
 .service-duration {
-  color: #17a2b8;
+  color: var(--info-color);
   border: 1px solid #bee5eb;
   background: #e3f4f8;
 }
 
 .service-price {
-  color: #28a745;
+  color: var(--success-color);
   border: 1px solid #c3e6cb;
   background: #eaf7ee;
 }
 
-.service-status {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.service-status.inactive {
-  background: #dc3545;
-  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
-}
-
-/* Service actions section */
-.service-actions {
-  display: flex;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.edit-btn,
-.delete-btn {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  border: none;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 80px;
-  justify-content: center;
-}
-
-.edit-btn {
-  background: linear-gradient(135deg, #17a2b8, #138496);
-  color: white;
-}
-
-.edit-btn:hover {
-  background: linear-gradient(135deg, #138496, #117a8b);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
-}
-
-.edit-btn:active {
-  transform: translateY(0);
-}
-
-.delete-btn {
-  background: linear-gradient(135deg, #dc3545, #c82333);
-  color: white;
-}
-
-.delete-btn:hover {
-  background: linear-gradient(135deg, #c82333, #bd2130);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
-}
-
-.delete-btn:active {
-  transform: translateY(0);
-}
-
-/* Responsive design for service cards */
-@media (max-width: 768px) {
-  .service-card {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 16px;
-  }
-
-  .service-info {
-    padding-right: 0;
-    margin-bottom: 16px;
-    width: 100%;
-  }
-
-  .service-actions {
-    width: 100%;
-    justify-content: flex-end;
-  }
-
-  .edit-btn,
-  .delete-btn {
-    flex: 1;
-    min-width: auto;
-  }
-}
-
-@media (max-width: 576px) {
-  .admin-container {
-    width: 100%;
-    padding: 15px;
-    margin: 20px auto;
-  }
-  /* Admin Tabs */
-  .admin-tabs {
-    width: 100% !important;
-    min-width: 100% !important;
-    max-width: 100% !important;
-    padding: 15px;
-    gap: 8px;
-    margin-bottom: 20px;
-  }
-  .service-card {
-    padding: 14px;
-  }
-
-  .service-info h4 {
-    font-size: 16px;
-  }
-
-  .service-description {
-    font-size: 13px;
-  }
-
-  .service-meta {
-    gap: 12px;
-  }
-
-  .service-duration,
-  .service-price {
-    font-size: 13px;
-    padding: 5px 10px;
-  }
-
-  .edit-btn,
-  .delete-btn {
-    padding: 8px 16px;
-    font-size: 13px;
-    min-width: 70px;
-  }
-
-  .schedule-form {
-    width: 100% !important;
-    min-width: 100% !important;
-    max-width: 100% !important;
-  }
-}
-/* Settings Section */
-.settings-section {
-  background: #fff;
-  border-radius: 16px;
-  padding: 25px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-}
-
-.settings-section h3 {
-  color: #2c3e50;
-  margin-bottom: 20px;
-  font-size: 22px;
-}
-
-.settings-section h4 {
-  color: #34495e;
-  margin: 20px 0 15px;
-  font-size: 18px;
-}
-
-/* Time Slots List */
-.time-slots-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 10px;
-  margin: 15px 0;
-  max-height: 300px;
-  overflow-y: auto;
-  padding: 10px;
-  background: #f8f9fa;
-  border-radius: 8px;
-}
-
-.time-slot-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  background: white;
-  border-radius: 6px;
-  border: 1px solid #e0e0e0;
-}
-
-.time-slot-item span {
-  font-weight: 500;
-  color: #333;
-}
-
-.btn-remove-time {
-  background: #dc3545;
-  color: white;
-  border: none;
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-remove-time:hover {
-  background: #c82333;
-}
-
-.btn-remove-time:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-/* Add Time Slot */
-.add-time-slot {
-  display: flex;
-  align-items: center;
-  margin-top: 20px;
-  padding-top: 15px;
-  border-top: 1px dashed #ddd;
-}
-
-.add-time-slot input[type="time"] {
-  padding: 8px 12px;
-  border: 2px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-.btn-add-time {
-  background: #28a745;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-add-time:hover {
-  background: #218838;
-}
-
-.btn-add-time:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-.note {
-  margin-top: 10px;
-  color: #666;
-  font-size: 13px;
-}
-/* Animation for card appearance */
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.service-card {
-  animation: slideIn 0.4s ease forwards;
-}
-
-/* Status badge with text */
 .service-status-badge {
   display: inline-flex;
   align-items: center;
@@ -788,226 +485,62 @@ slot-count .calendar-day.has-schedule {
   border: 1px solid #f5c6cb;
 }
 
-/* Alternative: If you want status with text instead of dot */
-.service-status-text {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 12px;
-}
-
-.service-status-text.active {
-  background: #28a745;
-  color: white;
-}
-
-.service-status-text.inactive {
-  background: #dc3545;
-  color: white;
-}
-
-/* Optional: Add icons to buttons */
-.edit-btn::before {
-  content: "✏️";
-  font-size: 14px;
-}
-
-/* Hoặc icon xóa nhẹ hơn */
-
-/* Hover effects for service meta items */
-.service-duration:hover,
-.service-price:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Empty state styling */
-.service-card.empty-state {
-  text-align: center;
-  padding: 40px 20px;
-  background: #f8f9fa;
-  border: 2px dashed #dee2e6;
-}
-
-.service-card.empty-state:hover {
-  transform: none;
-  border-color: #adb5bd;
-  background: #e9ecef;
-}
-
-/* Loading skeleton */
-.service-card.loading {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: loading 1.5s infinite;
-}
-
-@keyframes loading {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-.toggle-group {
+.service-actions {
   display: flex;
   gap: 10px;
+  flex-shrink: 0;
 }
 
-.toggle-btn {
-  flex: 1;
-  border: 1px solid #ccc;
-  background: #f9f9f9;
-  padding: 8px 12px;
+.edit-btn,
+.delete-btn {
+  padding: 10px 20px;
   border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s;
-}
-
-.toggle-btn.active {
-  background: #007bff;
-  color: white;
-  border-color: #007bff;
-}
-
-.time-slots-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 10px;
-}
-
-/* Mặc định: KHÔNG selected (bị loại trừ) */
-.time-slot {
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: white;
-  color: #666;
-  cursor: pointer;
-  text-align: center;
-  transition: all 0.2s;
+  font-weight: 600;
   font-size: 14px;
-}
-
-/* Slot mặc định - LÀM VIỆC (xanh) */
-.time-slot.selected {
-  background: #007bff;
-  color: white;
-  border-color: #007bff;
-}
-
-/* Slot bị admin bỏ chọn - NGHỈ (xám) */
-.time-slot.inactive {
-  background: #f8f9fa;
-  color: #999;
-  border-color: #ddd;
-  text-decoration: line-through;
-}
-
-/* Slot có lịch hẹn - KHÔNG THỂ ĐỔI (đỏ) */
-.time-slot.has-appointment {
-  background: #dc3545 !important;
-  color: white !important;
-  border-color: #dc3545 !important;
-  cursor: not-allowed !important;
-  opacity: 0.8;
-}
-
-.save-btn {
-  width: 100%;
-  padding: 10px;
+  cursor: pointer;
   border: none;
-  border-radius: 10px;
-  background: #28a745;
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.save-btn:hover {
-  background: #218838;
-}
-
-.save-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* ========== Danh sách lịch hẹn ========== */
-.appointments-section {
-  grid-column: span 2;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  padding: 20px;
-}
-
-@media (max-width: 900px) {
-  .appointments-section {
-    grid-column: 1;
-  }
-}
-
-.appointment-card {
-  border: 1px solid #eee;
-  border-radius: 12px;
-  padding: 12px 16px;
-  margin-bottom: 12px;
+  transition: var(--transition);
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  transition: all 0.2s;
+  gap: 6px;
+  min-width: 80px;
+  justify-content: center;
 }
 
-.appointment-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.delete-btn {
+  margin-top: 5px;
 }
 
-.appointment-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.appointment-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.confirm-btn {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
+.edit-btn {
+  background: linear-gradient(135deg, var(--info-color), #138496);
   color: white;
-  transition: all 0.2s;
 }
 
-.confirm-btn {
-  background: #007bff;
+.edit-btn:hover {
+  background: linear-gradient(135deg, #138496, #117a8b);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
 }
 
-.confirm-btn:hover {
-  background: #0069d9;
+.delete-btn {
+  background: linear-gradient(135deg, var(--danger-color), #c82333);
+  color: white;
 }
 
-.no-appointments {
-  text-align: center;
-  color: #777;
-  font-style: italic;
-  margin-top: 12px;
+.delete-btn:hover {
+  background: linear-gradient(135deg, #c82333, #bd2130);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
 }
-/* ========== Appointments Section ========== */
+
+/* ========== APPOINTMENTS SECTION ========== */
 .appointments-section {
   background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
   padding: 30px;
   margin-top: 30px;
+  width: 100%;
 }
 
 .appointments-section h3 {
@@ -1020,44 +553,39 @@ slot-count .calendar-day.has-schedule {
   gap: 10px;
 }
 
-.appointments-section h3::before {
-  content: "📅";
-  font-size: 20px;
-}
-
-/* Appointment Card */
 .appointment-card {
   background: #fafbfc;
   border: 1px solid #e1e5e9;
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 16px;
-  transition: all 0.3s ease;
+  transition: var(--transition);
   display: flex;
-  justify-content: between;
+  justify-content: space-between;
   align-items: flex-start;
   gap: 20px;
+  animation: slideIn 0.3s ease-out;
 }
 
 .appointment-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-  border-color: #007bff;
+  border-color: var(--primary-color);
 }
 
 /* Status variants */
 .appointment-card.confirmed {
-  border-left: 4px solid #28a745;
+  border-left: 4px solid var(--success-color);
   background: linear-gradient(135deg, #f8fff9 0%, #f0f9f0 100%);
 }
 
 .appointment-card.pending {
-  border-left: 4px solid #ffc107;
+  border-left: 4px solid var(--warning-color);
   background: linear-gradient(135deg, #fffbf0 0%, #fef9e7 100%);
 }
 
 .appointment-card.cancelled {
-  border-left: 4px solid #dc3545;
+  border-left: 4px solid var(--danger-color);
   background: linear-gradient(135deg, #fff5f5 0%, #fef0f0 100%);
 }
 
@@ -1066,7 +594,6 @@ slot-count .calendar-day.has-schedule {
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
 }
 
-/* Appointment Info */
 .appointment-info {
   flex: 1;
   display: flex;
@@ -1121,45 +648,30 @@ slot-count .calendar-day.has-schedule {
   color: #383d41;
 }
 
-/* Appointment Actions */
 .appointment-actions {
   display: flex;
   gap: 10px;
   flex-shrink: 0;
 }
 
-.confirm-btn {
+.confirm-btn,
+.cancel-btn {
   padding: 10px 20px;
   border: none;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: var(--transition);
   min-width: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
 }
-.cancel-btn {
-  background: red;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-.cancel-btn:hover {
-  background: rgb(230, 80, 80) !important;
-  color: white !important;
-}
 
 .confirm-btn {
-  background: linear-gradient(135deg, #28a745, #20c997);
+  background: linear-gradient(135deg, var(--success-color), #20c997);
   color: white;
   box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
 }
@@ -1170,50 +682,323 @@ slot-count .calendar-day.has-schedule {
   background: linear-gradient(135deg, #218838, #1e9e8a);
 }
 
-.confirm-btn::before {
-  content: "✓";
-  font-weight: bold;
+.cancel-btn {
+  background: var(--danger-color);
+  color: white;
 }
 
-/* No Appointments */
+.cancel-btn:hover {
+  background: rgb(230, 80, 80);
+  transform: translateY(-2px);
+}
+
 .no-appointments {
   text-align: center;
   padding: 60px 20px;
   color: #6c757d;
   font-size: 16px;
-  background: #f8f9fa;
+  background: var(--light-color);
   border-radius: 12px;
   border: 2px dashed #dee2e6;
 }
 
-.no-appointments::before {
-  content: "📝";
-  font-size: 24px;
-  display: block;
-  margin-bottom: 10px;
+/* ========== STAFF MANAGEMENT ========== */
+.staff-management {
+  background: #fff;
+  border-radius: 10px;
+  padding: 25px;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
 }
 
-/* Responsive Design */
+.staff-management h3 {
+  margin-top: 0;
+  margin-bottom: 25px;
+  color: #2c3e50;
+  font-size: 1.5rem;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #f0f2f5;
+}
+
+.staff-card {
+  background: var(--light-color);
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-height: 150px;
+  padding: 15px;
+}
+
+.staff-card:hover {
+  background: #e9f7fe;
+  border-color: #bee5eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.1);
+}
+
+.staff-card h4 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.staff-card .staff-index {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 28px;
+  margin-right: 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.add-staff-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.add-staff-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}
+
+/* ========== MODAL STYLES ========== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 420px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 25px;
+  border-bottom: 1px solid #e9ecef;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 12px 12px 0 0;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #6c757d;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid #e9ecef;
+}
+
+.btn-cancel,
+.btn-save {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.btn-cancel {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-save {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.appointment-notification {
+  background: #fff9e6;
+  border: 1px solid #ffd700;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 16px 0;
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.notification-icon {
+  font-size: 20px;
+}
+/* ========== ANIMATIONS ========== */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* ========== RESPONSIVE DESIGN ========== */
 @media (max-width: 768px) {
-  .appointments-section {
-    padding: 20px;
-    margin-top: 20px;
-  }
-
-  .appointment-card {
+  .admin-container {
     flex-direction: column;
-    gap: 15px;
   }
 
+  .calendar-section,
+  .schedule-form,
+  .admin-tabs {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .service-card,
+  .appointment-card,
+  .staff-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .service-info,
+  .appointment-info {
+    padding-right: 0;
+    margin-bottom: 16px;
+    width: 100%;
+  }
+
+  .service-actions,
   .appointment-actions {
     width: 100%;
     justify-content: stretch;
   }
 
+  .edit-btn,
+  .delete-btn,
   .confirm-btn,
   .cancel-btn {
     flex: 1;
     min-width: auto;
+  }
+
+  .modal-content {
+    width: 95%;
+    margin: 10px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .btn-cancel,
+  .btn-save {
+    width: 100%;
+  }
+}
+
+@media (max-width: 576px) {
+  .admin-container {
+    padding: 15px;
+    margin: 20px auto;
+  }
+
+  .admin-tabs {
+    padding: 15px;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .tab-btn {
+    width: 100%;
+  }
+
+  .time-slots-grid {
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  }
+
+  .service-card {
+    padding: 14px;
+  }
+
+  .service-info h4 {
+    font-size: 16px;
   }
 
   .appointment-info strong {
@@ -1223,53 +1008,8 @@ slot-count .calendar-day.has-schedule {
   .appointment-info span {
     font-size: 13px;
   }
-}
 
-/* Animation for new appointments */
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.appointment-card {
-  animation: slideIn 0.3s ease-out;
-}
-
-/* Loading state */
-.appointment-card.loading {
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-.appointment-card.loading .confirm-btn,
-.appointment-card.loading {
-  position: relative;
-  color: transparent;
-}
-
-.appointment-card.loading .confirm-btn::after,
-.appointment-card.loading {
-  content: "";
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  border: 2px solid transparent;
-  border-top: 2px solid white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
+  .staff-management h3 {
+    font-size: 1.3rem;
   }
 }

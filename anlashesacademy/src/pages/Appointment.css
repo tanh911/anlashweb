@@ -180,38 +180,37 @@
   margin-bottom: 20px;
 }
 
+/* Thêm vào Appointment.css */
 .time-slot {
-  padding: 15px 10px;
-  border-radius: 12px;
-  border: 2px solid #007bff;
-  cursor: pointer;
-  font-weight: 600;
-  text-align: center;
-  transition: all 0.3s ease;
-  background: #fff;
-  font-size: 16px;
+  position: relative;
+}
+
+.time-slot.available {
+  background-color: #d4edda;
+  border-color: #c3e6cb;
+  color: #155724;
 }
 
 .time-slot.available:hover {
-  background: #007bff;
-  color: #fff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
-}
-
-.time-slot.selected {
-  background: #28a745;
-  color: #fff;
-  border-color: #28a745;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  background-color: #c3e6cb;
 }
 
 .time-slot.unavailable {
-  background: #f8f9fa;
-  border-color: #dee2e6;
-  color: #6c757d;
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
   cursor: not-allowed;
+}
+
+/* Slot với ít nhân viên trống */
+.time-slot.low-availability {
+  background-color: #fff3cd;
+  border-color: #ffeaa7;
+  color: #856404;
+}
+
+.time-slot.low-availability:hover {
+  background-color: #ffeaa7;
 }
 
 .no-slots-message {
@@ -418,7 +417,231 @@
   color: #721c24;
   border: 1px solid #f5c6cb;
 }
+/* Staff Selection Styles */
+.staff-selection-wrapper {
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 15px;
+  background-color: #fafafa;
+  margin-top: 10px;
+}
 
+.recommended-badge {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  color: #2e7d32;
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  font-size: 14px;
+  border-left: 4px solid #4caf50;
+  display: flex;
+  align-items: center;
+}
+
+.recommended-badge i {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.staff-select {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-size: 16px;
+  margin-bottom: 15px;
+  background-color: white;
+  transition: border-color 0.3s;
+}
+
+.staff-select:focus {
+  border-color: #4caf50;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+.staff-select option {
+  padding: 10px;
+}
+
+.selected-staff-info {
+  background-color: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  padding: 15px;
+  margin-top: 10px;
+}
+
+.staff-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.staff-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-right: 15px;
+  border: 2px solid #4caf50;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
+.staff-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.staff-basic-info h4 {
+  margin: 0 0 5px 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.staff-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.staff-meta span {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #666;
+  background-color: #f5f5f5;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.staff-meta i {
+  margin-right: 4px;
+}
+
+.specialization {
+  background-color: #e3f2fd !important;
+  color: #1976d2 !important;
+}
+
+.rating {
+  background-color: #fff8e1 !important;
+  color: #f57c00 !important;
+}
+
+.experience {
+  background-color: #f3e5f5 !important;
+  color: #7b1fa2 !important;
+}
+
+.skills-section h5 {
+  margin: 0 0 8px 0;
+  color: #555;
+  font-size: 14px;
+}
+
+.skills-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 15px;
+}
+
+.skill-tag {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.availability-section {
+  background-color: #f9f9f9;
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 4px solid #4caf50;
+}
+
+.availability-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.status-dot.available {
+  background-color: #4caf50;
+}
+
+.status-dot.full {
+  background-color: #f44336;
+}
+
+.slots-text {
+  font-weight: 600;
+  font-size: 14px;
+  margin-right: 8px;
+}
+
+.capacity-info {
+  color: #777;
+  font-size: 12px;
+}
+
+.current-bookings {
+  display: flex;
+  align-items: center;
+  color: #ff9800;
+  font-size: 13px;
+  padding: 6px 10px;
+  background-color: #fff3e0;
+  border-radius: 4px;
+}
+
+.current-bookings i {
+  margin-right: 6px;
+}
+
+.loading-staff,
+.no-staff {
+  padding: 20px;
+  text-align: center;
+  color: #666;
+  background-color: #f5f5f5;
+  border-radius: 6px;
+  margin-top: 10px;
+}
+
+.no-staff {
+  color: #ff9800;
+  background-color: #fff3e0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .staff-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .staff-avatar {
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
+
+  .staff-meta {
+    justify-content: center;
+  }
+}
 /* ========== RESPONSIVE DESIGN ========== */
 
 /* Tablet (900px - 1200px) */
@@ -440,11 +663,11 @@
 /* Tablet (768px - 900px) */
 @media (max-width: 900px) {
   .appointment-content {
-    flex-direction: column;
+    flex-direction: row;
     gap: 40px;
   }
   .calendar-section {
-    background-color: red;
+    width: 100% !important;
   }
   .booking-section {
     min-width: 100%;
@@ -609,6 +832,14 @@
 
 /* Mobile Extra Small (< 480px) */
 @media (max-width: 480px) {
+  .calendar {
+    width: 100% !important;
+  }
+  .appointment-content {
+  }
+  .calendar-section {
+    width: 100% !important;
+  }
   .appointment-header h1 {
     font-size: 20px;
   }
@@ -638,6 +869,8 @@
     padding: 10px;
     font-size: 13px;
     border-radius: 10px;
+    height: 37px !important;
+    width: 81px !important;
   }
 
   .form-group label {

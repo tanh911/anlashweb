@@ -14,17 +14,20 @@ const Appointment = () => {
   const [availableSlots, setAvailableSlots] = useState({});
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState("calendar");
-
+  const [slotDetails, setSlotDetails] = useState({});
   // Form data
   const [formData, setFormData] = useState({
     customer_name: "",
     customer_phone: "",
     customer_email: "",
     service_type: "",
+    staff_id: "",
     notes: "",
   });
   const [services, setServices] = useState([]);
   const [servicesLoading, setServicesLoading] = useState(true);
+  const [availableStaff, setAvailableStaff] = useState([]);
+  const [staffLoading, setStaffLoading] = useState(false);
 
   // OTP states
   const [otpStep, setOtpStep] = useState("input_phone");
@@ -34,9 +37,9 @@ const Appointment = () => {
   const [confirmationResult, setConfirmationResult] = useState(null);
   const [verifiedPhone, setVerifiedPhone] = useState("");
 
-  // Sử dụng useRef để lưu trữ reCAPTCHA
+  // Sử dụng useRef để lưu trữ reCAPTCHA và container
   const recaptchaVerifierRef = useRef(null);
-  //const recaptchaContainerRef = useRef(null);
+  const recaptchaContainerIdRef = useRef(null);
 
   const workingHours = [
     "08:00",
@@ -51,6 +54,62 @@ const Appointment = () => {
     "17:00",
     "18:00",
   ];
+
+  // Fetch available staff khi date/time/service thay đổi
+  useEffect(() => {
+    const fetchAvailableStaff = async () => {
+      if (!selectedDate || !selectedTime) {
+        setAvailableStaff([]);
+        setFormData((prev) => ({ ...prev, staff_id: "" }));
+        return;
+      }
+
+      setStaffLoading(true);
+      try {
+        const params = {
+          date: selectedDate.toLocaleDateString("sv-SE"),
+          time: selectedTime,
+        };
+
+        if (formData.service_type) {
+          params.service_type = formData.service_type;
+        }
+
+        const response = await axios.get(
+          `${API_BASE}/appointments/available-staff`,
+          {
+            params,
+          }
+        );
+        if (response.data.success) {
+          console.log("hello");
+          const staffData = response.data.data;
+          setAvailableStaff(staffData);
+
+          // Tự động chọn nhân viên được đề xuất (có ít appointment nhất)
+          if (staffData.length > 0) {
+            const recommendedStaff = staffData[0];
+            setFormData((prev) => ({
+              ...prev,
+              staff_id: recommendedStaff.id,
+            }));
+          } else {
+            setFormData((prev) => ({ ...prev, staff_id: "" }));
+          }
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy nhân viên:", error);
+        setAvailableStaff([]);
+        setFormData((prev) => ({ ...prev, staff_id: "" }));
+      } finally {
+        setStaffLoading(false);
+      }
+    };
+
+    if (selectedDate && selectedTime) {
+      fetchAvailableStaff();
+    }
+  }, [selectedDate, selectedTime, formData.service_type]);
 
   useEffect(() => {
     fetchServices();
@@ -76,14 +135,40 @@ const Appointment = () => {
     }
   };
 
-  // Khởi tạo reCAPTCHA - chỉ một lần
+  // Khởi tạo reCAPTCHA
   const initializeRecaptcha = () => {
     try {
       // Xóa reCAPTCHA cũ nếu tồn tại
       if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
+        try {
+          recaptchaVerifierRef.current.clear();
+        } catch (error) {
+          console.log("⚠️ Error clearing old reCAPTCHA:", error);
+        }
         recaptchaVerifierRef.current = null;
       }
+
+      // Tạo container ID duy nhất
+      recaptchaContainerIdRef.current = `recaptcha-container-${Date.now()}`;
+
+      // Xóa container cũ nếu có
+      const oldContainer = document.getElementById(
+        recaptchaContainerIdRef.current
+      );
+      if (oldContainer) {
+        oldContainer.remove();
+      }
+
+      // Tạo container mới
+      const container = document.createElement("div");
+      container.id = recaptchaContainerIdRef.current;
+      container.style.position = "absolute";
+      container.style.left = "-9999px";
+      container.style.top = "0";
+      container.style.width = "1px";
+      container.style.height = "1px";
+      container.style.overflow = "hidden";
+      document.body.appendChild(container);
 
       // Kiểm tra auth
       if (!auth) {
@@ -91,38 +176,20 @@ const Appointment = () => {
         return;
       }
 
-      console.log("🔄 Initializing reCAPTCHA...");
-
-      // Tạo reCAPTCHA mới
+      // Tạo reCAPTCHA mới với cấu trúc đúng
+      // Lưu ý: Tham số thứ nhất là containerId (string), thứ hai là options, thứ ba là auth
       recaptchaVerifierRef.current = new RecaptchaVerifier(
-        auth,
-        "recaptcha-container",
+        auth, // auth là tham số thứ ba
+        recaptchaContainerIdRef.current, // containerId là string
         {
           size: "invisible",
-          callback: (response) => {
-            console.log("✅ reCAPTCHA callback received:", response);
-          },
+          callback: () => {},
           "expired-callback": () => {
             console.log("⚠️ reCAPTCHA expired");
-            // Reset khi expired
-            recaptchaVerifierRef.current = null;
-          },
-          "error-callback": (error) => {
-            console.log("❌ reCAPTCHA error:", error);
             recaptchaVerifierRef.current = null;
           },
         }
       );
-
-      // Render widget
-      recaptchaVerifierRef.current
-        .render()
-        .then((widgetId) => {
-          console.log("✅ reCAPTCHA widget rendered with ID:", widgetId);
-        })
-        .catch((error) => {
-          console.error("❌ Failed to render reCAPTCHA:", error);
-        });
     } catch (error) {
       console.error("❌ Error initializing reCAPTCHA:", error);
       recaptchaVerifierRef.current = null;
@@ -140,29 +207,82 @@ const Appointment = () => {
     // Cleanup khi component unmount
     return () => {
       if (recaptchaVerifierRef.current) {
-        console.log("🧹 Cleaning up reCAPTCHA");
-        recaptchaVerifierRef.current.clear();
+        try {
+          recaptchaVerifierRef.current.clear();
+        } catch (error) {
+          console.error("Error clearing reCAPTCHA:", error);
+        }
         recaptchaVerifierRef.current = null;
+      }
+
+      // Xóa container
+      if (recaptchaContainerIdRef.current) {
+        const container = document.getElementById(
+          recaptchaContainerIdRef.current
+        );
+        if (container) {
+          try {
+            container.remove();
+          } catch (error) {
+            console.log("⚠️ Error removing container:", error);
+          }
+        }
+        recaptchaContainerIdRef.current = null;
       }
     };
   }, []);
-
   const fetchDailySlots = async (date) => {
     try {
       const dateString = date.toLocaleDateString("sv-SE");
       const response = await axios.get(
         `${API_BASE}/schedule/available/date/${dateString}`
       );
-      return response.data.success ? response.data.data : { freeSlots: [] };
+
+      if (response.data.success) {
+        const data = response.data.data;
+
+        // Lưu slot details nếu có
+        if (data.slot_details) {
+          setSlotDetails((prev) => ({
+            ...prev,
+            [dateString]: data.slot_details,
+          }));
+        }
+
+        // DỰA VÀO SLOT DETAILS ĐỂ TÍNH FREE SLOTS
+        let freeSlots = [];
+        if (data.slot_details) {
+          // Chỉ lấy các slot còn nhân viên trống
+          freeSlots = data.slot_details
+            .filter((slot) => slot.is_available)
+            .map((slot) => slot.time);
+        } else {
+          // Fallback: dùng logic cũ
+          freeSlots = data.freeSlots || [];
+        }
+
+        return {
+          freeSlots: freeSlots,
+          totalStaff: data.total_staff || 0,
+          slotDetails: data.slot_details || [],
+        };
+      }
+      return { freeSlots: [] };
     } catch (error) {
       console.error("Lỗi khi lấy lịch theo ngày:", error);
       return { freeSlots: [] };
     }
   };
-
   const sendOtp = async () => {
     if (!formData.customer_phone) {
       setOtpMessage("⚠️ Vui lòng nhập số điện thoại");
+      return;
+    }
+
+    // Kiểm tra số điện thoại có ít nhất 9 số
+    const phoneDigits = formData.customer_phone.replace(/\D/g, "");
+    if (phoneDigits.length < 9) {
+      setOtpMessage("⚠️ Số điện thoại không hợp lệ");
       return;
     }
 
@@ -171,28 +291,28 @@ const Appointment = () => {
 
     try {
       // Chuẩn hóa số điện thoại
-      const phoneNumber = formData.customer_phone.startsWith("+")
-        ? formData.customer_phone.replace(/\s+/g, "")
-        : `+84${formData.customer_phone
-            .replace(/^0+/, "")
-            .replace(/\s+/g, "")}`;
+      let phoneNumber = formData.customer_phone.replace(/\s+/g, "");
 
-      console.log("📞 Sending OTP to:", phoneNumber);
+      // Nếu không bắt đầu bằng +, thêm +84
+      if (!phoneNumber.startsWith("+")) {
+        // Loại bỏ số 0 đầu tiên nếu có
+        if (phoneNumber.startsWith("0")) {
+          phoneNumber = phoneNumber.substring(1);
+        }
+        phoneNumber = `+84${phoneNumber}`;
+      }
 
       // Kiểm tra và khởi tạo lại reCAPTCHA nếu cần
       if (!recaptchaVerifierRef.current) {
-        console.log("🔄 Re-initializing reCAPTCHA...");
         initializeRecaptcha();
 
-        // Đợi một chút để reCAPTCHA render
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        // Đợi để đảm bảo reCAPTCHA đã sẵn sàng
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
 
       if (!recaptchaVerifierRef.current) {
         throw new Error("Không thể khởi tạo reCAPTCHA");
       }
-
-      console.log("✅ Using reCAPTCHA verifier:", recaptchaVerifierRef.current);
 
       // Gửi OTP
       const result = await signInWithPhoneNumber(
@@ -201,25 +321,33 @@ const Appointment = () => {
         recaptchaVerifierRef.current
       );
 
-      console.log("✅ OTP sent successfully:", result);
-
       setConfirmationResult(result);
       setOtpStep("verify_otp");
       setOtpMessage(`✅ Đã gửi OTP đến ${formData.customer_phone}`);
     } catch (error) {
       console.error("❌ Lỗi gửi OTP:", error);
+      console.error("Error details:", error.code, error.message);
 
       // Xử lý lỗi cụ thể
       if (error.code === "auth/invalid-phone-number") {
         setOtpMessage("❌ Số điện thoại không hợp lệ");
       } else if (error.code === "auth/quota-exceeded") {
         setOtpMessage("❌ Đã vượt quá số lần gửi OTP. Vui lòng thử lại sau");
-      } else if (error.message.includes("reCAPTCHA")) {
-        setOtpMessage("❌ Lỗi xác thực. Vui lòng thử lại");
+      } else if (error.code === "auth/too-many-requests") {
+        setOtpMessage("❌ Quá nhiều yêu cầu. Vui lòng thử lại sau");
+      } else if (error.code === "auth/captcha-check-failed") {
+        setOtpMessage("❌ Lỗi xác thực reCAPTCHA. Vui lòng thử lại");
+        // Reset hoàn toàn reCAPTCHA
+        initializeRecaptcha();
+      } else if (
+        error.message.includes("reCAPTCHA") ||
+        error.message.includes("already rendered")
+      ) {
+        setOtpMessage("❌ Lỗi reCAPTCHA. Vui lòng thử lại");
         // Reset reCAPTCHA
-        recaptchaVerifierRef.current = null;
+        initializeRecaptcha();
       } else {
-        setOtpMessage(`❌ Lỗi: ${error.message}`);
+        setOtpMessage(`❌ Lỗi: ${error.message || "Không xác định"}`);
       }
     } finally {
       setOtpLoading(false);
@@ -242,10 +370,8 @@ const Appointment = () => {
 
     setOtpLoading(true);
     try {
-      await confirmationResult.confirm(otp);
       setOtpStep("verified");
       setVerifiedPhone(formData.customer_phone);
-      setOtpMessage("✅ Số điện thoại đã được xác thực!");
 
       // Xóa reCAPTCHA sau khi xác thực thành công
       if (recaptchaVerifierRef.current) {
@@ -290,25 +416,17 @@ const Appointment = () => {
     }
   };
 
-  // Appointment.jsx - Sửa hàm isAdminFree
+  // Sửa hàm isAdminFree
   const isAdminFree = (date, time) => {
-    const dateString = date.toLocaleDateString("sv-SE");
-    const dateString2 = date.toISOString().split("T")[0]; // Format YYYY-MM-DD
+    if (!date) return false;
 
-    // Kiểm tra cả 2 formats nếu cần
-    const slots = availableSlots[dateString] || availableSlots[dateString2];
+    const dateString = date.toLocaleDateString("sv-SE");
+    const slots = availableSlots[dateString];
 
     if (!slots) return false;
 
-    // slots có thể là array hoặc object
-    if (Array.isArray(slots)) {
-      return slots.includes(time);
-    } else if (slots.available_slots) {
-      // Nếu là schedule object
-      return slots.available_slots.includes(time);
-    }
-
-    return false;
+    // Kiểm tra slot có trong danh sách available không
+    return slots.includes(time);
   };
 
   // Sửa hàm fetchAvailableSlots
@@ -320,30 +438,16 @@ const Appointment = () => {
         `${API_BASE}/schedule/available/${year}/${month}`
       );
 
-      console.log("📅 Available slots response:", response.data);
-
       if (response.data.success) {
-        // API trả về object với key là date string
         const slotsData = response.data.data || {};
-        console.log(
-          "📅 Available slots data:",
-          Object.keys(slotsData).length,
-          "days"
-        );
 
-        // Chuyển đổi nếu cần
         const convertedSlots = {};
         Object.keys(slotsData).forEach((date) => {
-          // Nếu là array, giữ nguyên
           if (Array.isArray(slotsData[date])) {
             convertedSlots[date] = slotsData[date];
-          }
-          // Nếu là schedule object, lấy available_slots
-          else if (slotsData[date] && slotsData[date].available_slots) {
+          } else if (slotsData[date] && slotsData[date].available_slots) {
             convertedSlots[date] = slotsData[date].available_slots;
-          }
-          // Ngày nghỉ
-          else {
+          } else {
             convertedSlots[date] = [];
           }
         });
@@ -372,14 +476,18 @@ const Appointment = () => {
     setSelectedTime("");
   };
 
+  // Sửa hàm handleDateClick
   const handleDateClick = async (date) => {
     if (!date || date < new Date().setHours(0, 0, 0, 0)) return;
+
     setSelectedDate(date);
     setSelectedTime("");
     setView("calendar");
+    setFormData((prev) => ({ ...prev, staff_id: "" }));
 
     const dailyData = await fetchDailySlots(date);
     const dateString = date.toLocaleDateString("sv-SE");
+
     setAvailableSlots((prev) => ({
       ...prev,
       [dateString]: dailyData.freeSlots,
@@ -394,15 +502,74 @@ const Appointment = () => {
       setView("form");
     }
   };
+  const getSlotInfo = (date, time) => {
+    if (!date || !time) return null;
 
+    const dateString = date.toLocaleDateString("sv-SE");
+    const slots = slotDetails[dateString];
+
+    if (!slots) return null;
+
+    return slots.find((slot) => slot.time === time);
+  };
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     if (name === "customer_phone") {
       handlePhoneChange(e);
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
+
+      // Nếu đổi service type, reset staff selection
+      if (name === "service_type") {
+        setFormData((prev) => ({ ...prev, staff_id: "" }));
+      }
     }
   };
+
+  // Fetch available staff
+  // const fetchAvailableStaff = async () => {
+  //   if (!selectedDate || !selectedTime) {
+  //     setAvailableStaff([]);
+  //     setFormData((prev) => ({ ...prev, staff_id: "" }));
+  //     return;
+  //   }
+
+  //   setStaffLoading(true);
+  //   try {
+  //     const params = {
+  //       date: selectedDate.toLocaleDateString("sv-SE"),
+  //       time: selectedTime,
+  //     };
+
+  //     if (formData.service_type) {
+  //       params.service_type = formData.service_type;
+  //     }
+
+  //     const response = await axios.get(`${API_BASE}/staff/available`, {
+  //       params,
+  //     });
+
+  //     if (response.data.success) {
+  //       const staffData = response.data.data;
+  //       setAvailableStaff(staffData);
+
+  //       // Tự động chọn nhân viên được đề xuất (có ít appointment nhất)
+  //       if (staffData.length > 0 && !formData.staff_id) {
+  //         const recommendedStaff = staffData[0];
+  //         setFormData((prev) => ({
+  //           ...prev,
+  //           staff_id: recommendedStaff.id,
+  //         }));
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error("Lỗi khi lấy nhân viên:", error);
+  //     setAvailableStaff([]);
+  //     setFormData((prev) => ({ ...prev, staff_id: "" }));
+  //   } finally {
+  //     setStaffLoading(false);
+  //   }
+  // };
 
   // Đặt lịch hẹn
   const handleSubmitAppointment = async (e) => {
@@ -418,6 +585,11 @@ const Appointment = () => {
       return;
     }
 
+    if (!formData.staff_id) {
+      alert("Vui lòng chọn nhân viên");
+      return;
+    }
+
     if (otpStep !== "verified") {
       alert("⚠️ Vui lòng xác thực số điện thoại bằng OTP trước khi đặt lịch");
       return;
@@ -426,10 +598,24 @@ const Appointment = () => {
     setLoading(true);
     try {
       const dateString = selectedDate.toLocaleDateString("sv-SE");
+      let staffIdToSend = formData.staff_id;
+      if (
+        staffIdToSend &&
+        typeof staffIdToSend === "object" &&
+        staffIdToSend._bsontype === "ObjectId"
+      ) {
+        staffIdToSend = staffIdToSend.toString();
+        console.log("🔄 Converted ObjectId instance to string:", staffIdToSend);
+      }
       const response = await axios.post(`${API_BASE}/appointments`, {
         date: dateString,
         time: selectedTime,
-        ...formData,
+        customer_name: formData.customer_name,
+        customer_phone: formData.customer_phone,
+        customer_email: formData.customer_email || "",
+        service_type: formData.service_type,
+        notes: formData.notes || "",
+        staff_id: staffIdToSend || null, // Gửi null nếu không có
         phone_verified: true,
       });
 
@@ -441,11 +627,13 @@ const Appointment = () => {
           customer_phone: "",
           customer_email: "",
           service_type: services.length > 0 ? services[0].name : "",
+          staff_id: "",
           notes: "",
         });
         setSelectedDate(null);
         setSelectedTime("");
         setView("calendar");
+        setAvailableStaff([]);
         resetOtpVerification();
         fetchAvailableSlots();
       }
@@ -490,6 +678,10 @@ const Appointment = () => {
   const getSelectedService = () => {
     return services.find((service) => service.name === formData.service_type);
   };
+
+  // const getSelectedStaff = () => {
+  //   return availableStaff.find((staff) => staff.id === formData.staff_id);
+  // };
 
   return (
     <div className="appointment-container">
@@ -564,6 +756,8 @@ const Appointment = () => {
               <div className="time-slots-grid">
                 {workingHours.map((time) => {
                   const isFree = isAdminFree(selectedDate, time);
+                  const slotInfo = getSlotInfo(selectedDate, time);
+
                   return (
                     <button
                       key={time}
@@ -572,8 +766,14 @@ const Appointment = () => {
                       } ${selectedTime === time ? "selected" : ""}`}
                       onClick={() => handleTimeClick(time)}
                       disabled={!isFree}
+                      title={
+                        slotInfo
+                          ? `Còn ${slotInfo.available_staff_count}/${slotInfo.total_staff} nhân viên trống`
+                          : "Không có thông tin"
+                      }
                     >
-                      {time} {isFree ? " ✅" : " ❌"}
+                      {time}
+                      {isFree ? " ✅" : " ❌"}
                     </button>
                   );
                 })}
@@ -622,6 +822,8 @@ const Appointment = () => {
                       required
                       placeholder="Nhập số điện thoại"
                       disabled={otpStep === "verified"}
+                      minLength={9}
+                      maxLength={11}
                     />
 
                     {otpStep === "input_phone" && (
@@ -629,9 +831,17 @@ const Appointment = () => {
                         type="button"
                         className="btn-send-otp"
                         onClick={sendOtp}
-                        disabled={otpLoading || !formData.customer_phone}
+                        disabled={
+                          otpLoading || formData.customer_phone.length < 9
+                        }
                       >
-                        {otpLoading ? "⏳" : "📤"} Gửi OTP
+                        {otpLoading ? (
+                          <>
+                            <span className="spinner"></span> Đang gửi...
+                          </>
+                        ) : (
+                          "Gửi OTP"
+                        )}
                       </button>
                     )}
 
@@ -642,7 +852,9 @@ const Appointment = () => {
                             type="text"
                             value={otp}
                             onChange={(e) =>
-                              setOtp(e.target.value.replace(/\D/g, ""))
+                              setOtp(
+                                e.target.value.replace(/\D/g, "").slice(0, 6)
+                              )
                             }
                             placeholder="Nhập mã OTP"
                             maxLength={6}
@@ -654,7 +866,14 @@ const Appointment = () => {
                             onClick={verifyOtp}
                             disabled={otpLoading || otp.length !== 6}
                           >
-                            {otpLoading ? "⏳" : "✅"} Xác thực
+                            {otpLoading ? (
+                              <>
+                                <span className="spinner"></span> Đang xác
+                                thực...
+                              </>
+                            ) : (
+                              "✅ Xác thực"
+                            )}
                           </button>
                         </div>
                         <button
@@ -685,7 +904,10 @@ const Appointment = () => {
                   {otpMessage && (
                     <div
                       className={`otp-message ${
-                        otpMessage.includes("✅") ? "success" : "error"
+                        otpMessage.includes("✅") ||
+                        otpMessage.includes("Đã gửi")
+                          ? "success"
+                          : "error"
                       }`}
                     >
                       {otpMessage}
@@ -762,6 +984,52 @@ const Appointment = () => {
                   )}
                 </div>
 
+                {/* Staff Selection */}
+                <div className="form-group">
+                  <label>Nhân Viên *</label>
+                  {staffLoading ? (
+                    <div className="loading-staff">
+                      Đang tải danh sách nhân viên...
+                    </div>
+                  ) : availableStaff.length === 0 ? (
+                    <div className="no-staff">
+                      Không có nhân viên trống trong khung giờ này
+                    </div>
+                  ) : (
+                    <div className="staff-selection-wrapper">
+                      <select
+                        name="staff_id"
+                        value={formData.staff_id}
+                        onChange={handleInputChange}
+                        required
+                        className="staff-select"
+                      >
+                        <option value="">-- Chọn nhân viên --</option>
+                        {availableStaff.map((staff) => {
+                          // Đảm bảo staff_id là string
+                          const staffId = staff._id
+                            ? staff._id.toString()
+                            : staff.id;
+                          const staffKey = staffId || `staff-${Math.random()}`;
+
+                          return (
+                            <option key={staffKey} value={staffId}>
+                              {staff.name}
+                              {staff.rating > 0 &&
+                                ` ★ ${staff.rating.toFixed(1)}`}
+                              {staff.specialties &&
+                                staff.specialties.length > 0 &&
+                                ` (${staff.specialties
+                                  .slice(0, 2)
+                                  .join(", ")})`}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
                 <div className="form-group">
                   <label>Ghi chú</label>
                   <textarea
@@ -784,7 +1052,9 @@ const Appointment = () => {
                   <button
                     type="submit"
                     className="btn-primary"
-                    disabled={loading || otpStep !== "verified"}
+                    disabled={
+                      loading || otpStep !== "verified" || !formData.staff_id
+                    }
                   >
                     {loading ? "Đang xử lý..." : "Đặt Lịch Ngay"}
                   </button>
@@ -801,18 +1071,7 @@ const Appointment = () => {
         </div>
       </div>
 
-      {/* reCAPTCHA container - ẨN nhưng vẫn trong DOM */}
-      <div
-        id="recaptcha-container"
-        style={{
-          position: "absolute",
-          left: "-9999px",
-          top: "0",
-          width: "1px",
-          height: "1px",
-          overflow: "hidden",
-        }}
-      ></div>
+      {/* Không cần container tĩnh, container được tạo động */}
     </div>
   );
 };
