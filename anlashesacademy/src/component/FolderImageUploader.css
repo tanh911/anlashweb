@@ -203,6 +203,10 @@
   animation: loading 2s ease-in-out infinite;
 }
 
+.uploading .upload-button {
+  pointer-events: none;
+  opacity: 0.8;
+}
 @keyframes loading {
   0% {
     width: 0%;

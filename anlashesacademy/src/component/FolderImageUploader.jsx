@@ -175,10 +175,7 @@ const FolderImageUploader = ({
         />
 
         {uploading ? (
-          <div className="uploading-spinner">
-            <div className="spinner"></div>
-            Đang upload...
-          </div>
+          <div className="uploading-spinner">Đang upload...</div>
         ) : (
           <>
             <span className="upload-icon">📸</span>

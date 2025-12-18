@@ -416,7 +416,43 @@ export const saveImageToFolder = async (folderId, imageUrl) => {
     }
   });
 };
+export const deleteMultipleImages = async (folderId, imageIndices) => {
+  const operationId = `deleteMultipleImages_${folderId}_${imageIndices.join(
+    "_"
+  )}`;
+  return debouncedSave(operationId, async () => {
+    try {
+      const docRef = doc(db, "gallery_images", folderId);
+      const docSnap = await getDoc(docRef);
 
+      if (docSnap.exists()) {
+        const currentImages = docSnap.data().images || [];
+
+        // Sắp xếp giảm dần để tránh index thay đổi
+        const sortedIndices = [...imageIndices].sort((a, b) => b - a);
+
+        // Tạo mảng mới không bao gồm các ảnh bị xóa
+        let updatedImages = [...currentImages];
+        sortedIndices.forEach((index) => {
+          if (index >= 0 && index < updatedImages.length) {
+            updatedImages.splice(index, 1);
+          }
+        });
+
+        await setDoc(docRef, {
+          images: updatedImages,
+          updatedAt: new Date().toISOString(),
+        });
+
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error(`❌ Lỗi khi xóa nhiều ảnh từ folder ${folderId}:`, error);
+      throw error;
+    }
+  });
+};
 export const deleteImageFromFolder = async (folderId, imageIndex) => {
   const operationId = `deleteImageFromFolder_${folderId}_${imageIndex}`;
   return debouncedSave(operationId, async () => {

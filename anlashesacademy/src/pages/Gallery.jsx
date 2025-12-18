@@ -1,10 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import FolderUploader from "../component/FolderImageUploader";
 import {
   getFolders,
   saveFolders,
   getImagesByFolder,
   saveImageToFolder,
+  deleteMultipleImages,
 } from "../firebase/firestore";
 import "./Gallery.css";
 
@@ -20,70 +27,201 @@ const Gallery = ({ loggedIn }) => {
   const [loading, setLoading] = useState(true);
   const [selectedImages, setSelectedImages] = useState([]);
   const [folderImageCounts, setFolderImageCounts] = useState({});
-  // eslint-disable-next-line no-unused-vars
-  const [folderStats, setFolderStats] = useState({});
-  const loadFolderImageCounts = async () => {
-    try {
-      const counts = {};
-
-      for (const folder of folders) {
-        const images = await getImagesByFolder(folder.id);
-        counts[folder.id] = images.length;
-      }
-
-      setFolderImageCounts(counts);
-    } catch (error) {
-      console.error("Lỗi khi lấy số ảnh folder:", error);
+  const [showUploadSuccess, setShowUploadSuccess] = useState(false);
+  const [uploadSuccessMessage, setUploadSuccessMessage] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isLoadingImages, setIsLoadingImages] = useState(false);
+  const [touchStart, setTouchStart] = useState(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  // Refs
+  const lastUploadTime = useRef(0);
+  const isProcessingUpload = useRef(false);
+  const abortControllerRef = useRef(null);
+  const toggleSelectionMode = () => {
+    if (!loggedIn) {
+      alert("Vui lòng đăng nhập để chọn ảnh!");
+      return;
+    }
+    setSelectionMode(!selectionMode);
+    if (selectionMode) {
+      // Nếu đang tắt chế độ chọn, xóa tất cả selection
+      setSelectedImages([]);
     }
   };
+  // Lấy thông tin folder hiện tại
+  const currentFolderData = useMemo(
+    () => folders.find((f) => f.id === currentFolder),
+    [folders, currentFolder]
+  );
 
-  // Gọi hàm khi folders thay đổi
-  useEffect(() => {
-    if (folders.length > 0) {
-      loadFolderImageCounts();
-    }
-  }, [folders]);
-
-  // Hàm helper để lấy số ảnh
-  const getFolderImageCount = (folderId) => {
-    return folderImageCounts[folderId] || 0;
-  };
   // Load folders khi component mount
   useEffect(() => {
     setLoading(true);
     loadFolders();
+
+    // Cleanup function
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, []);
 
-  const loadFolders = async () => {
+  // Load số lượng ảnh cho mỗi folder
+  useEffect(() => {
+    const loadFolderImageCounts = async () => {
+      if (folders.length === 0) return;
+
+      try {
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
+        const counts = {};
+        const promises = folders.map(async (folder) => {
+          try {
+            const images = await getImagesByFolder(folder.id);
+            if (!controller.signal.aborted) {
+              counts[folder.id] = images.length;
+            }
+          } catch (error) {
+            if (error.name !== "AbortError") {
+              console.error(`Lỗi khi lấy ảnh cho folder ${folder.id}:`, error);
+              counts[folder.id] = 0;
+            }
+          }
+        });
+
+        await Promise.all(promises);
+
+        if (!controller.signal.aborted) {
+          setFolderImageCounts(counts);
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy số ảnh folder:", error);
+      }
+    };
+
+    loadFolderImageCounts();
+  }, [folders]);
+
+  const loadFolders = useCallback(async () => {
     try {
       const foldersData = await getFolders();
+      const validFolders = Array.isArray(foldersData) ? foldersData : [];
+      setFolders(validFolders);
 
-      setFolders(foldersData || []);
-
-      if (foldersData && foldersData.length > 0) {
-        const firstFolder = foldersData[0];
-        setCurrentFolder(firstFolder.id);
-        loadImages(firstFolder.id);
+      if (validFolders.length > 0) {
+        setCurrentFolder(validFolders[0].id);
+        loadImages(validFolders[0].id);
       } else {
         setCurrentFolder(null);
         setImages([]);
       }
     } catch (error) {
       console.error("❌ Lỗi khi load folders:", error);
+      setFolders([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const loadImages = async (folderId) => {
+  const loadImages = useCallback(async (folderId) => {
+    if (!folderId) {
+      setImages([]);
+      return;
+    }
+
+    setIsLoadingImages(true);
     try {
       const folderImages = await getImagesByFolder(folderId);
-      setImages(folderImages || []);
-      setSelectedImages([]); // Reset selection khi chuyển folder
+      setImages(Array.isArray(folderImages) ? folderImages : []);
+      setSelectedImages([]);
     } catch (error) {
       console.error("❌ Lỗi khi load images:", error);
+      setImages([]);
+    } finally {
+      setIsLoadingImages(false);
+    }
+  }, []);
+
+  // Xử lý touch events cho mobile
+  const handleTouchStart = (e, img, idx) => {
+    if (isDeleting) return;
+
+    setTouchStart({
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      img,
+      idx,
+      timestamp: Date.now(),
+    });
+  };
+
+  const handleTouchEnd = (e, idx) => {
+    if (!touchStart || isDeleting) return;
+
+    const touchEnd = {
+      x: e.changedTouches[0].clientX,
+      y: e.changedTouches[0].clientY,
+    };
+
+    const distance = Math.sqrt(
+      Math.pow(touchEnd.x - touchStart.x, 2) +
+        Math.pow(touchEnd.y - touchStart.y, 2)
+    );
+
+    const timeDiff = Date.now() - touchStart.timestamp;
+
+    // Nếu là tap (di chuyển ít và thời gian ngắn)
+    if (distance < 10 && timeDiff < 300) {
+      if (selectionMode && loggedIn) {
+        // Trong chế độ chọn, tap để chọn ảnh
+        toggleImageSelection(idx);
+      } else {
+        // Không trong chế độ chọn, tap để xem ảnh
+        setModalImage(touchStart.img);
+      }
+    }
+
+    setTouchStart(null);
+  };
+
+  const handleImageClick = (img, idx) => {
+    if (isDeleting) return;
+
+    if (selectionMode && loggedIn) {
+      // Trong chế độ chọn, click để chọn/bỏ chọn ảnh
+      toggleImageSelection(idx);
+    } else if (!selectionMode && loggedIn) {
+      // Nếu không trong chế độ chọn, click để xem ảnh
+      setModalImage(img);
+    } else {
+      // Nếu không đăng nhập, click để xem ảnh
+      setModalImage(img);
     }
   };
+
+  // const handleImageDoubleClick = (img) => {
+  //   if (isDeleting) return;
+  //   setModalImage(img);
+  // };
+
+  // Thêm long press để xem ảnh trên mobile (cho người dùng đã đăng nhập)
+  useEffect(() => {
+    let pressTimer;
+
+    if (touchStart && loggedIn && !isDeleting) {
+      pressTimer = setTimeout(() => {
+        // Long press (giữ 1 giây) để xem ảnh
+        setModalImage(touchStart.img);
+        setTouchStart(null);
+      }, 1000);
+    }
+
+    return () => {
+      if (pressTimer) clearTimeout(pressTimer);
+    };
+  }, [touchStart, loggedIn, isDeleting]);
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) {
@@ -96,13 +234,22 @@ const Gallery = ({ loggedIn }) => {
       return;
     }
 
+    const isDuplicate = folders.some(
+      (folder) =>
+        folder.name.toLowerCase() === newFolderName.trim().toLowerCase()
+    );
+
+    if (isDuplicate) {
+      alert("Tên folder đã tồn tại. Vui lòng chọn tên khác.");
+      return;
+    }
+
     try {
       const newFolder = {
         id: Date.now().toString(),
-        name: newFolderName,
+        name: newFolderName.trim(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        itemCount: 0,
       };
 
       const updatedFolders = [...folders, newFolder];
@@ -111,15 +258,17 @@ const Gallery = ({ loggedIn }) => {
       setFolders(updatedFolders);
       setNewFolderName("");
       setShowCreateFolder(false);
-
-      // Chọn folder mới tạo
       setCurrentFolder(newFolder.id);
       setImages([]);
+      setFolderImageCounts((prev) => ({
+        ...prev,
+        [newFolder.id]: 0,
+      }));
 
-      alert(`✅ Đã tạo folder "${newFolderName}" thành công!`);
+      showNotification(`✅ Đã tạo folder "${newFolderName}" thành công!`);
     } catch (error) {
       console.error("❌ Lỗi khi tạo folder:", error);
-      alert("Lỗi khi tạo folder: " + error.message);
+      showNotification("❌ Lỗi khi tạo folder: " + error.message, true);
     }
   };
 
@@ -134,12 +283,23 @@ const Gallery = ({ loggedIn }) => {
       return;
     }
 
+    const isDuplicate = folders.some(
+      (folder) =>
+        folder.id !== editingFolder &&
+        folder.name.toLowerCase() === editFolderName.trim().toLowerCase()
+    );
+
+    if (isDuplicate) {
+      alert("Tên folder đã tồn tại. Vui lòng chọn tên khác.");
+      return;
+    }
+
     try {
       const updatedFolders = folders.map((folder) =>
         folder.id === editingFolder
           ? {
               ...folder,
-              name: editFolderName,
+              name: editFolderName.trim(),
               updatedAt: new Date().toISOString(),
             }
           : folder
@@ -150,10 +310,10 @@ const Gallery = ({ loggedIn }) => {
       setEditingFolder(null);
       setEditFolderName("");
 
-      alert(`✅ Đã đổi tên folder thành "${editFolderName}"!`);
+      showNotification(`✅ Đã đổi tên folder thành "${editFolderName}"!`);
     } catch (error) {
       console.error("❌ Lỗi khi cập nhật folder:", error);
-      alert("Lỗi khi cập nhật folder: " + error.message);
+      showNotification("❌ Lỗi khi cập nhật folder: " + error.message, true);
     }
   };
 
@@ -167,7 +327,9 @@ const Gallery = ({ loggedIn }) => {
     if (!folderToDelete) return;
 
     if (
-      !window.confirm(`Bạn có chắc muốn xóa folder "${folderToDelete.name}"?`)
+      !window.confirm(
+        `Bạn có chắc muốn xóa folder "${folderToDelete.name}" và tất cả ảnh bên trong?`
+      )
     ) {
       return;
     }
@@ -177,6 +339,11 @@ const Gallery = ({ loggedIn }) => {
       await saveFolders(updatedFolders);
 
       setFolders(updatedFolders);
+      setFolderImageCounts((prev) => {
+        const newCounts = { ...prev };
+        delete newCounts[folderId];
+        return newCounts;
+      });
 
       if (currentFolder === folderId) {
         if (updatedFolders.length > 0) {
@@ -188,54 +355,60 @@ const Gallery = ({ loggedIn }) => {
         }
       }
 
-      alert(`✅ Đã xóa folder "${folderToDelete.name}"!`);
+      showNotification(`✅ Đã xóa folder "${folderToDelete.name}"!`);
     } catch (error) {
       console.error("❌ Lỗi khi xóa folder:", error);
-      alert("Lỗi khi xóa folder: " + error.message);
+      showNotification("❌ Lỗi khi xóa folder: " + error.message, true);
     }
   };
 
-  const handleFolderUploadSuccess = async (url, folderId) => {
-    if (!loggedIn) {
-      alert("Vui lòng đăng nhập để upload ảnh!");
-      return;
-    }
-
-    try {
-      await saveImageToFolder(folderId, url);
-
-      // 🎯 Cập nhật images nếu đang ở folder hiện tại
-      if (currentFolder === folderId) {
-        setImages((prev) => [...prev, url]);
+  const handleFolderUploadSuccess = useCallback(
+    async (url, folderId) => {
+      const now = Date.now();
+      if (now - lastUploadTime.current < 1000 || isProcessingUpload.current) {
+        console.log("Bỏ qua upload trùng lặp");
+        return;
       }
 
-      // 🎯 Cập nhật folders state
-      setFolders((prevFolders) =>
-        prevFolders.map((folder) =>
-          folder.id === folderId
-            ? {
-                ...folder,
-                itemCount: (folder.itemCount || 0) + 1,
-                updatedAt: new Date().toISOString(),
-              }
-            : folder
-        )
-      );
+      if (!loggedIn) {
+        alert("Vui lòng đăng nhập để upload ảnh!");
+        return;
+      }
 
-      // 🎯 Cũng cập nhật folderStats
-      setFolderStats((prev) => ({
-        ...prev,
-        [folderId]: (prev[folderId] || 0) + 1,
-      }));
+      if (!url || !folderId) {
+        console.error("URL hoặc folderId không hợp lệ");
+        return;
+      }
 
-      alert("✅ Upload ảnh thành công!");
-    } catch (error) {
-      console.error("❌ Lỗi khi lưu ảnh:", error);
-      alert("Lỗi khi lưu ảnh: " + error.message);
-    }
-  };
+      isProcessingUpload.current = true;
+      lastUploadTime.current = now;
+
+      try {
+        await saveImageToFolder(folderId, url);
+
+        if (currentFolder === folderId) {
+          setImages((prev) => [...prev, url]);
+        }
+
+        setFolderImageCounts((prev) => ({
+          ...prev,
+          [folderId]: (prev[folderId] || 0) + 1,
+        }));
+
+        showNotification("✅ Upload ảnh thành công!");
+      } catch (error) {
+        console.error("❌ Lỗi khi lưu ảnh:", error);
+        showNotification("❌ Lỗi khi lưu ảnh: " + error.message, true);
+      } finally {
+        isProcessingUpload.current = false;
+      }
+    },
+    [loggedIn, currentFolder]
+  );
 
   const toggleImageSelection = (imageIndex) => {
+    if (isDeleting) return;
+
     setSelectedImages((prev) =>
       prev.includes(imageIndex)
         ? prev.filter((index) => index !== imageIndex)
@@ -243,15 +416,125 @@ const Gallery = ({ loggedIn }) => {
     );
   };
 
-  const getCurrentFolder = () => {
-    return folders.find((f) => f.id === currentFolder);
-  };
-
   const handleSelectAllImages = () => {
+    if (isDeleting || images.length === 0) return;
+
     if (selectedImages.length === images.length) {
       setSelectedImages([]);
     } else {
       setSelectedImages(images.map((_, index) => index));
+    }
+  };
+
+  const handleFolderSelect = (folderId) => {
+    if (folderId === currentFolder) return;
+
+    setCurrentFolder(folderId);
+    loadImages(folderId);
+  };
+
+  const getFolderImageCount = (folderId) => {
+    return folderImageCounts[folderId] || 0;
+  };
+
+  // const handleDeleteSingleImage = useCallback(
+  //   async (imageIndex) => {
+  //     if (!loggedIn) {
+  //       alert("Vui lòng đăng nhập để xóa ảnh!");
+  //       return;
+  //     }
+
+  //     if (!window.confirm("Bạn có chắc muốn xóa ảnh này?")) {
+  //       return;
+  //     }
+
+  //     setIsDeleting(true);
+
+  //     try {
+  //       await deleteImageFromFolder(currentFolder, imageIndex);
+
+  //       setImages((prev) => prev.filter((_, index) => index !== imageIndex));
+  //       setFolderImageCounts((prev) => ({
+  //         ...prev,
+  //         [currentFolder]: Math.max((prev[currentFolder] || 0) - 1, 0),
+  //       }));
+  //       setSelectedImages((prev) => prev.filter((idx) => idx !== imageIndex));
+
+  //       showNotification("✅ Đã xóa ảnh thành công!");
+  //     } catch (error) {
+  //       console.error("❌ Lỗi khi xóa ảnh:", error);
+  //       showNotification("❌ Lỗi khi xóa ảnh. Vui lòng thử lại.", true);
+  //     } finally {
+  //       setIsDeleting(false);
+  //     }
+  //   },
+  //   [currentFolder, loggedIn]
+  // );
+
+  const handleDeleteMultipleImages = useCallback(async () => {
+    if (!loggedIn) {
+      alert("Vui lòng đăng nhập để xóa ảnh!");
+      return;
+    }
+
+    if (selectedImages.length === 0) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      const sortedSelectedImages = [...selectedImages].sort((a, b) => b - a);
+      await deleteMultipleImages(currentFolder, sortedSelectedImages);
+
+      setImages((prev) =>
+        prev.filter((_, index) => !selectedImages.includes(index))
+      );
+      setFolderImageCounts((prev) => ({
+        ...prev,
+        [currentFolder]: (prev[currentFolder] || 0) - selectedImages.length,
+      }));
+      setSelectedImages([]);
+
+      showNotification(`✅ Đã xóa ${selectedImages.length} ảnh thành công!`);
+    } catch (error) {
+      console.error("❌ Lỗi khi xóa ảnh:", error);
+      showNotification("❌ Lỗi khi xóa ảnh. Vui lòng thử lại.", true);
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [currentFolder, loggedIn, selectedImages]);
+
+  // eslint-disable-next-line no-unused-vars
+  const showNotification = (message, isError = false) => {
+    setUploadSuccessMessage(message);
+    setShowUploadSuccess(true);
+
+    setTimeout(() => {
+      setShowUploadSuccess(false);
+    }, 3000);
+  };
+
+  const formatDate = (dateString) => {
+    try {
+      return new Date(dateString).toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (error) {
+      return error;
+    }
+  };
+
+  // Đóng modal khi chạm vào overlay trên mobile
+  const handleModalOverlayClick = (e) => {
+    if (e.target === e.currentTarget) {
+      setModalImage(null);
+      setShowCreateFolder(false);
+      setEditingFolder(null);
     }
   };
 
@@ -266,15 +549,38 @@ const Gallery = ({ loggedIn }) => {
     );
   }
 
-  const currentFolderData = getCurrentFolder();
-
   return (
     <div className="gallery-container">
+      {/* Notification Toast */}
+      {showUploadSuccess && (
+        <div
+          className={`notification-toast ${
+            uploadSuccessMessage.includes("❌") ? "error" : ""
+          }`}
+        >
+          <div className="toast-content">
+            <span className="toast-icon">
+              {uploadSuccessMessage.includes("❌") ? "❌" : "✅"}
+            </span>
+            <span className="toast-message">{uploadSuccessMessage}</span>
+            <button
+              className="toast-close"
+              onClick={() => setShowUploadSuccess(false)}
+              aria-label="Đóng thông báo"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="gallery-header">
         <div className="header-left">
           <div className="gallery-logo">
-            <span className="logo-icon">📷</span>
+            <span className="logo-icon" aria-hidden="true">
+              📷
+            </span>
             <span
               className="logo-text"
               style={{
@@ -292,12 +598,20 @@ const Gallery = ({ loggedIn }) => {
         {/* Sidebar - Danh sách folders */}
         <div className="sidebar">
           <div className="sidebar-header">
-            <h2 className="sidebar-title">📁 Thư mục</h2>
+            <h2 className="sidebar-title" id="folders-title">
+              <span aria-hidden="true">📁</span> Thư mục
+            </h2>
           </div>
-          <div className="folders-list">
+          <div
+            className="folders-list"
+            role="listbox"
+            aria-labelledby="folders-title"
+          >
             {folders.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">📁</div>
+                <div className="empty-icon" aria-hidden="true">
+                  📁
+                </div>
                 <div className="empty-title">Chưa có thư mục</div>
                 {loggedIn && (
                   <div className="empty-description">
@@ -312,18 +626,22 @@ const Gallery = ({ loggedIn }) => {
                   className={`folder-item ${
                     currentFolder === folder.id ? "active" : ""
                   }`}
-                  onClick={() => {
-                    setCurrentFolder(folder.id);
-                    loadImages(folder.id);
-                  }}
+                  onClick={() => handleFolderSelect(folder.id)}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  role="option"
+                  aria-selected={currentFolder === folder.id}
+                  tabIndex={0}
+                  onKeyPress={(e) =>
+                    e.key === "Enter" && handleFolderSelect(folder.id)
+                  }
                 >
-                  <span className="folder-icon">
+                  <span className="folder-icon" aria-hidden="true">
                     {currentFolder === folder.id ? "📂" : "📁"}
                   </span>
                   <div className="folder-info">
                     <div className="folder-name">{folder.name}</div>
                     <div className="folder-stats">
-                      {getFolderImageCount(folder.id) || 0} ảnh
+                      {getFolderImageCount(folder.id)} ảnh
                     </div>
                   </div>
                   {loggedIn && (
@@ -336,6 +654,7 @@ const Gallery = ({ loggedIn }) => {
                           setEditFolderName(folder.name);
                         }}
                         title="Đổi tên"
+                        aria-label={`Đổi tên folder ${folder.name}`}
                       >
                         ✏️
                       </button>
@@ -352,6 +671,7 @@ const Gallery = ({ loggedIn }) => {
                 className="btn primary"
                 onClick={() => setShowCreateFolder(true)}
                 style={{ width: "100%" }}
+                aria-label="Tạo thư mục mới"
               >
                 ➕ Tạo thư mục mới
               </button>
@@ -365,12 +685,10 @@ const Gallery = ({ loggedIn }) => {
           <div className="folder-details">
             <div className="folder-details-header">
               <h2 className="folder-details-title">
-                <span className="folder-details-icon">
+                <span className="folder-details-icon" aria-hidden="true">
                   {currentFolder ? "📂" : "🏠"}
                 </span>
-                {currentFolder
-                  ? currentFolderData?.name || "Đang tải..."
-                  : "Chọn một thư mục"}
+                {currentFolderData?.name || "Chọn một thư mục"}
               </h2>
 
               {currentFolder && loggedIn && (
@@ -381,12 +699,14 @@ const Gallery = ({ loggedIn }) => {
                       setEditingFolder(currentFolder);
                       setEditFolderName(currentFolderData?.name || "");
                     }}
+                    aria-label="Đổi tên folder"
                   >
                     ✏️ Đổi tên
                   </button>
                   <button
                     className="btn secondary"
                     onClick={() => handleDeleteFolder(currentFolder)}
+                    aria-label="Xóa folder"
                   >
                     🗑️ Xóa
                   </button>
@@ -394,26 +714,24 @@ const Gallery = ({ loggedIn }) => {
               )}
             </div>
 
-            {loggedIn && currentFolder && currentFolderData && (
+            {loggedIn && currentFolderData && (
               <div className="folder-meta">
                 <div className="meta-item">
                   <span className="meta-label">Số lượng ảnh</span>
-                  <span className="meta-value">{images.length} ảnh</span>
+                  <span className="meta-value">
+                    {getFolderImageCount(currentFolder)} ảnh
+                  </span>
                 </div>
                 <div className="meta-item">
                   <span className="meta-label">Ngày tạo</span>
                   <span className="meta-value">
-                    {new Date(currentFolderData.createdAt).toLocaleDateString(
-                      "vi-VN"
-                    )}
+                    {formatDate(currentFolderData.createdAt)}
                   </span>
                 </div>
                 <div className="meta-item">
                   <span className="meta-label">Cập nhật lần cuối</span>
                   <span className="meta-value">
-                    {new Date(currentFolderData.updatedAt).toLocaleDateString(
-                      "vi-VN"
-                    )}
+                    {formatDate(currentFolderData.updatedAt)}
                   </span>
                 </div>
               </div>
@@ -424,18 +742,11 @@ const Gallery = ({ loggedIn }) => {
                 <FolderUploader
                   loggedIn={loggedIn}
                   onUploadSuccess={(url) => {
-                    // Thêm điều kiện trực tiếp
-                    if (
-                      window.lastUploadUrl !== url ||
-                      Date.now() - window.lastUploadTime > 1000
-                    ) {
-                      window.lastUploadUrl = url;
-                      window.lastUploadTime = Date.now();
-                      handleFolderUploadSuccess(url, currentFolder);
-                    }
+                    handleFolderUploadSuccess(url, currentFolder);
                   }}
                   folderId={currentFolder}
                   buttonText="Upload ảnh"
+                  disabled={isDeleting}
                 />
               </div>
             )}
@@ -445,27 +756,73 @@ const Gallery = ({ loggedIn }) => {
           <div className="images-preview">
             <div className="preview-header">
               <h3 className="preview-title">
-                🖼️ Ảnh
-                {currentFolder && <span>({images.length} ảnh)</span>}
+                <span aria-hidden="true">🖼️</span> Ảnh
+                {currentFolder && <span> ({images.length} ảnh)</span>}
               </h3>
 
-              {images.length > 0 && (
+              {images.length > 0 && loggedIn && (
                 <div className="preview-actions">
-                  {selectedImages.length > 0 && (
+                  {loggedIn && currentFolder && images.length > 0 && (
                     <button
-                      className="btn secondary"
-                      onClick={() => {
-                        alert(`Xóa ${selectedImages.length} ảnh?`);
-                        setSelectedImages([]);
-                      }}
+                      className={`btn ${
+                        selectionMode ? "primary" : "secondary"
+                      }`}
+                      onClick={toggleSelectionMode}
+                      disabled={isDeleting}
+                      aria-label={
+                        selectionMode ? "Thoát chế độ chọn" : "Chọn ảnh"
+                      }
                     >
-                      🗑️ Xóa đã chọn ({selectedImages.length})
+                      {selectionMode ? (
+                        <>
+                          <span className="selection-mode-icon">✕</span>
+                          Thoát chọn
+                        </>
+                      ) : (
+                        <>
+                          <span className="selection-mode-icon">✓</span>
+                          Chọn ảnh
+                        </>
+                      )}
                     </button>
                   )}
-                  {loggedIn && (
+
+                  {selectionMode && selectedImages.length > 0 && (
+                    <button
+                      className={`btn secondary ${
+                        isDeleting ? "deleting" : ""
+                      }`}
+                      onClick={() => {
+                        if (
+                          window.confirm(`Xóa ${selectedImages.length} ảnh?`)
+                        ) {
+                          handleDeleteMultipleImages();
+                        }
+                      }}
+                      disabled={isDeleting}
+                      aria-label={`Xóa ${selectedImages.length} ảnh`}
+                    >
+                      {isDeleting ? (
+                        <>
+                          <span className="small-spinner"></span>
+                          Đang xóa...
+                        </>
+                      ) : (
+                        `🗑️ Xóa (${selectedImages.length})`
+                      )}
+                    </button>
+                  )}
+
+                  {selectionMode && (
                     <button
                       className="btn secondary"
                       onClick={handleSelectAllImages}
+                      disabled={isDeleting || isLoadingImages}
+                      aria-label={
+                        selectedImages.length === images.length
+                          ? "Bỏ chọn tất cả ảnh"
+                          : "Chọn tất cả ảnh"
+                      }
                     >
                       {selectedImages.length === images.length
                         ? "Bỏ chọn tất cả"
@@ -477,43 +834,66 @@ const Gallery = ({ loggedIn }) => {
             </div>
 
             <div className="images-grid">
-              {currentFolder ? (
+              {isLoadingImages ? (
+                <div className="loading-state">
+                  <div className="spinner"></div>
+                  <p>Đang tải ảnh...</p>
+                </div>
+              ) : currentFolder ? (
                 images.length > 0 ? (
                   images.map((img, idx) => (
                     <div
-                      key={idx}
+                      key={`${currentFolder}-${idx}`}
                       className={`image-card ${
-                        selectedImages.includes(idx) ? "selected" : ""
+                        selectionMode && selectedImages.includes(idx)
+                          ? "selected"
+                          : ""
+                      } ${selectionMode ? "selectable" : ""} ${
+                        isDeleting ? "disabled" : ""
                       }`}
-                      onClick={() => toggleImageSelection(idx)}
+                      onClick={() => handleImageClick(img, idx)}
+                      onDoubleClick={() => {
+                        if (!selectionMode) setModalImage(img);
+                      }}
+                      onTouchStart={(e) => handleTouchStart(e, img, idx)}
+                      onTouchEnd={(e) => handleTouchEnd(e, idx)}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        if (loggedIn && !isDeleting) {
+                          setModalImage(img);
+                        }
+                      }}
+                      tabIndex={0}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          handleImageClick(img, idx);
+                        }
+                      }}
+                      role="checkbox"
+                      aria-checked={selectedImages.includes(idx)}
+                      aria-label={`Ảnh ${idx + 1}`}
                     >
                       <img
                         src={img}
-                        alt={`Ảnh ${idx + 1}`}
+                        alt={`Ảnh ${idx + 1} trong folder ${
+                          currentFolderData?.name
+                        }`}
                         className="image-preview"
-                        onDoubleClick={() => setModalImage(img)}
+                        loading="lazy"
+                        onError={(e) => {
+                          e.target.src =
+                            "https://via.placeholder.com/300x200?text=Lỗi+ảnh";
+                        }}
                       />
-                      <div className="image-info">
-                        <div className="image-name">Ảnh {idx + 1}</div>
-                        <div className="image-size">1.2 MB</div>
-                      </div>
-                      <div className="image-overlay">
-                        <button
-                          className="btn icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setModalImage(img);
-                          }}
-                          title="Xem ảnh"
-                        >
-                          👁️
-                        </button>
-                      </div>
+
+                      {/* Thêm hint cho mobile */}
                     </div>
                   ))
                 ) : (
                   <div className="empty-state">
-                    <div className="empty-icon">🖼️</div>
+                    <div className="empty-icon" aria-hidden="true">
+                      🖼️
+                    </div>
                     <div className="empty-title">Chưa có ảnh</div>
                     <div className="empty-description">
                       {loggedIn
@@ -524,7 +904,9 @@ const Gallery = ({ loggedIn }) => {
                 )
               ) : (
                 <div className="empty-state">
-                  <div className="empty-icon">👈</div>
+                  <div className="empty-icon" aria-hidden="true">
+                    👈
+                  </div>
                   <div className="empty-title">Chọn một thư mục</div>
                   <div className="empty-description">
                     Chọn thư mục từ sidebar để xem ảnh
@@ -540,22 +922,31 @@ const Gallery = ({ loggedIn }) => {
       {showCreateFolder && loggedIn && (
         <div
           className="modal-overlay"
-          onClick={() => setShowCreateFolder(false)}
+          onClick={handleModalOverlayClick}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="create-folder-title"
         >
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <div className="modal-title">Tạo thư mục mới</div>
+              <div className="modal-title" id="create-folder-title">
+                Tạo thư mục mới
+              </div>
               <button
                 className="modal-close"
                 onClick={() => setShowCreateFolder(false)}
+                aria-label="Đóng"
               >
                 ×
               </button>
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label className="form-label">Tên thư mục</label>
+                <label className="form-label" htmlFor="new-folder-name">
+                  Tên thư mục
+                </label>
                 <input
+                  id="new-folder-name"
                   type="text"
                   className="form-input"
                   placeholder="Nhập tên thư mục..."
@@ -563,17 +954,25 @@ const Gallery = ({ loggedIn }) => {
                   onChange={(e) => setNewFolderName(e.target.value)}
                   autoFocus
                   onKeyPress={(e) => e.key === "Enter" && handleCreateFolder()}
+                  maxLength={50}
                 />
+                <div className="form-hint">Tối đa 50 ký tự</div>
               </div>
             </div>
             <div className="modal-footer">
               <button
                 className="btn secondary"
                 onClick={() => setShowCreateFolder(false)}
+                aria-label="Hủy tạo folder"
               >
                 Hủy
               </button>
-              <button className="btn primary" onClick={handleCreateFolder}>
+              <button
+                className="btn primary"
+                onClick={handleCreateFolder}
+                disabled={!newFolderName.trim()}
+                aria-label="Tạo thư mục"
+              >
                 Tạo
               </button>
             </div>
@@ -582,38 +981,58 @@ const Gallery = ({ loggedIn }) => {
       )}
 
       {editingFolder && loggedIn && (
-        <div className="modal-overlay" onClick={() => setEditingFolder(null)}>
+        <div
+          className="modal-overlay"
+          onClick={handleModalOverlayClick}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-folder-title"
+        >
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <div className="modal-title">Đổi tên thư mục</div>
+              <div className="modal-title" id="edit-folder-title">
+                Đổi tên thư mục
+              </div>
               <button
                 className="modal-close"
                 onClick={() => setEditingFolder(null)}
+                aria-label="Đóng"
               >
                 ×
               </button>
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label className="form-label">Tên mới</label>
+                <label className="form-label" htmlFor="edit-folder-name">
+                  Tên mới
+                </label>
                 <input
+                  id="edit-folder-name"
                   type="text"
                   className="form-input"
                   value={editFolderName}
                   onChange={(e) => setEditFolderName(e.target.value)}
                   autoFocus
                   onKeyPress={(e) => e.key === "Enter" && handleUpdateFolder()}
+                  maxLength={50}
                 />
+                <div className="form-hint">Tối đa 50 ký tự</div>
               </div>
             </div>
             <div className="modal-footer">
               <button
                 className="btn secondary"
                 onClick={() => setEditingFolder(null)}
+                aria-label="Hủy đổi tên folder"
               >
                 Hủy
               </button>
-              <button className="btn primary" onClick={handleUpdateFolder}>
+              <button
+                className="btn primary"
+                onClick={handleUpdateFolder}
+                disabled={!editFolderName.trim()}
+                aria-label="Lưu tên mới"
+              >
                 Lưu
               </button>
             </div>
@@ -622,30 +1041,58 @@ const Gallery = ({ loggedIn }) => {
       )}
 
       {modalImage && (
-        <div className="modal-overlay" onClick={() => setModalImage(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal-overlay image-modal-overlay"
+          onClick={handleModalOverlayClick}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="image-modal-title"
+        >
+          <div
+            className="modal-content image-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
-              <div className="modal-title">Xem ảnh</div>
+              <div className="modal-title" id="image-modal-title">
+                Xem ảnh
+              </div>
               <button
                 className="modal-close"
                 onClick={() => setModalImage(null)}
+                aria-label="Đóng"
               >
                 ×
               </button>
             </div>
-            <div className="modal-body">
-              <img src={modalImage} alt="Full size" className="modal-image" />
+            <div className="modal-body image-modal-body">
+              <div className="image-modal-container">
+                <img
+                  src={modalImage}
+                  alt="Xem ảnh đầy đủ"
+                  className="modal-image"
+                  onError={(e) => {
+                    e.target.src =
+                      "https://via.placeholder.com/800x600?text=Lỗi+tải+ảnh";
+                  }}
+                />
+              </div>
             </div>
-            <div className="modal-footer">
+            <div className="modal-footer image-modal-footer">
               <a
                 href={modalImage}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn secondary"
+                aria-label="Mở ảnh trong tab mới"
               >
                 🔗 Mở ảnh
               </a>
-              <a href={modalImage} download className="btn primary">
+              <a
+                href={modalImage}
+                download
+                className="btn primary"
+                aria-label="Tải ảnh về"
+              >
                 ⬇️ Tải về
               </a>
             </div>
